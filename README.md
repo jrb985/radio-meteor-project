@@ -106,3 +106,8 @@ antenna *outside* matters far more than which antenna it is
 - The Windows GUI, the diagnostics, and the deck builders live in the working
   folder but are not published here; this repo is the Pi-runnable subset plus
   the site.
+
+## License
+
+[MIT](LICENSE) — use it, change it, ship it. If it helps you catch a meteor,
+that's the whole point.
