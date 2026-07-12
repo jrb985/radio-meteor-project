@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reflection geometry — Radio Meteor Project</title>
+<meta name="description" content="Why only a subset of meteors ever reflect to you: the forward-scatter specular condition, the ellipsoid, the side hot-spots, and what that does to your counts.">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>📐</text></svg>">
+<style>
+:root {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+  --serif:Georgia,'Iowan Old Style','Palatino Linotype',serif;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+    --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+    --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+    --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="light"] {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+}
+:root[data-theme="dark"] {
+  --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+  --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+  --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+  --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+}
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; line-height:1.6;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+.wrap { width:100%; max-width:940px; margin:0 auto;
+  padding:clamp(40px,8vh,96px) clamp(22px,5vw,40px); flex:1; }
+/* A waterfall trace: the motif of the whole project. */
+.trace { display:flex; gap:4px; align-items:flex-end; height:44px; margin-bottom:26px; }
+.trace span { width:4px; background:var(--ion); border-radius:3px 3px 0 0; opacity:.55; }
+.trace span.ping { opacity:1; background:var(--ember); }
+.eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ion); display:flex; align-items:center;
+  gap:.7em; margin:0 0 18px; }
+.eyebrow::before { content:""; width:26px; height:2px; background:var(--ion); }
+h1 { font-family:var(--serif); font-weight:600; font-size:clamp(32px,6vw,58px);
+  line-height:1.05; letter-spacing:-.015em; margin:0 0 18px; text-wrap:balance; max-width:20ch; }
+.lede { font-size:clamp(16px,2vw,20px); color:var(--ink-soft); max-width:62ch; margin:0 0 14px; }
+.meta { font-family:var(--mono); font-size:12.5px; color:var(--ink-faint);
+  letter-spacing:.03em; margin:0 0 44px; }
+.meta b { color:var(--ink-soft); font-weight:500; }
+
+.decks { display:grid; grid-template-columns:repeat(2,1fr); gap:clamp(16px,2.4vw,24px); }
+@media (max-width:560px) { .decks { grid-template-columns:1fr; } }
+a.deck { display:flex; flex-direction:column; gap:12px; text-decoration:none;
+  background:var(--surface); border:1px solid var(--line); border-radius:18px;
+  padding:clamp(22px,3vw,30px); box-shadow:var(--shadow); color:inherit;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+a.deck:hover { transform:translateY(-3px);
+  border-color:color-mix(in srgb,var(--ion) 50%,var(--line));
+  box-shadow:0 6px 14px rgba(0,0,0,.08),0 22px 50px rgba(0,0,0,.12); }
+a.deck:focus-visible { outline:2px solid var(--ion); outline-offset:3px; }
+.deck .glyph { font-size:34px; line-height:1; }
+.deck .num { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+.deck h2 { font-family:var(--serif); font-weight:600; font-size:clamp(20px,2.6vw,26px);
+  margin:0; line-height:1.14; }
+.deck p { margin:0; font-size:14.5px; color:var(--ink-soft); }
+.deck .go { margin-top:auto; font-family:var(--mono); font-size:12px;
+  letter-spacing:.05em; color:var(--ion); display:flex; align-items:center; gap:7px; }
+.deck .go::after { content:"\2192"; transition:transform .18s ease; }
+a.deck:hover .go::after { transform:translateX(4px); }
+
+/* ---- deck page ---- */
+.home { position:fixed; top:16px; left:18px; z-index:50; font-family:var(--mono);
+  font-size:12px; letter-spacing:.05em; text-decoration:none; padding:7px 13px;
+  border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); backdrop-filter:blur(6px); }
+.home:hover { color:var(--ion); }
+.dl { display:inline-flex; align-items:center; gap:8px; font-family:var(--mono);
+  font-size:12.5px; text-decoration:none; color:var(--ion);
+  border:1px solid var(--line); border-radius:999px; padding:8px 15px;
+  background:var(--surface); margin-bottom:40px; }
+.dl:hover { border-color:color-mix(in srgb,var(--ion) 50%,var(--line)); }
+section.slide { background:var(--surface); border:1px solid var(--line);
+  border-radius:18px; padding:clamp(22px,3vw,32px); margin-bottom:clamp(16px,2vw,22px);
+  box-shadow:var(--shadow); }
+section.slide > .no { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+section.slide h2 { font-family:var(--serif); font-weight:600;
+  font-size:clamp(21px,2.8vw,29px); margin:6px 0 4px; line-height:1.15; color:var(--ion); }
+section.slide .sub { color:var(--ink-soft); font-size:15px; margin:0 0 14px; }
+section.slide ul { margin:10px 0 0; padding-left:20px; }
+section.slide ul.sub { margin:2px 0 6px; padding-left:22px; list-style:circle;
+  color:var(--ink-soft); font-size:14.5px; }
+section.slide li { margin:5px 0; }
+section.slide li.good { color:var(--good); }
+section.slide li.warn { color:var(--ember); }
+figure { margin:16px 0 0; }
+figure img { max-width:100%; height:auto; border-radius:12px; border:1px solid var(--line); }
+.tablewrap { overflow-x:auto; margin:14px 0 0; }
+table { border-collapse:collapse; width:100%; font-size:14px; min-width:520px; }
+th { text-align:left; background:var(--ion-soft); color:var(--ink);
+  font-weight:600; padding:9px 11px; border:1px solid var(--line); }
+td { padding:9px 11px; border:1px solid var(--line); color:var(--ink-soft); vertical-align:top; }
+td:first-child { color:var(--ink); font-weight:500; }
+.flow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0 4px; }
+.chip { font-family:var(--mono); font-size:12px; background:var(--ion-soft);
+  color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:8px 12px; }
+.arrow { color:var(--ink-faint); }
+
+footer { border-top:1px solid var(--line); }
+.foot-in { max-width:940px; margin:0 auto; padding:22px clamp(22px,5vw,40px);
+  font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);
+  letter-spacing:.03em; display:flex; flex-wrap:wrap; gap:6px 18px;
+  justify-content:space-between; }
+.foot-in a { color:var(--ink-faint); }
+.theme-toggle { position:fixed; top:16px; right:18px; z-index:40;
+  font-family:var(--mono); font-size:12px; letter-spacing:.05em;
+  padding:7px 13px; border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); cursor:pointer; backdrop-filter:blur(6px); }
+.theme-toggle:hover { color:var(--ion); }
+.theme-toggle:focus-visible { outline:2px solid var(--ion); outline-offset:2px; }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme">&#9790; theme</button>
+<a class="home" href="index.html">&#8592; Radio Meteor Project</a>
+<div class="wrap">
+  <div class="trace" aria-hidden="true"><span style="height:22%"></span><span style="height:38%"></span><span style="height:30%"></span><span style="height:52%"></span><span style="height:34%"></span><span class="ping" style="height:100%"></span><span style="height:44%"></span><span style="height:28%"></span><span style="height:40%"></span><span style="height:24%"></span><span style="height:33%"></span></div>
+  <p class="eyebrow">Radio Meteor Project</p>
+  <h1>Reflection geometry</h1>
+  <p class="lede">Why only a subset of meteors ever reflect to you: the forward-scatter specular condition, the ellipsoid, the side hot-spots, and what that does to your counts.</p>
+  <a class="dl" href="decks/Reflection_Geometry.pptx" download>&#8595; Download the .pptx</a>
+  <section class="slide"><span class="no">Slide 1 of 11</span><h2>Reflection Geometry &amp; the Science of the Count</h2><p class="sub">Why only certain meteors bounce a distant FM station into your antenna</p><ul><li>Forward-scatter: a distant FM station, normally below your horizon, is relayed to you for an instant by a meteor&#x27;s ionized trail. Each confirmed relay = 1 count.</li><li class="good">The geometry decides WHICH meteors you see, WHERE the echo comes from, and HOW that shapes your diurnal &amp; shower curves and your antenna aim.</li></ul></section><section class="slide"><span class="no">Slide 2 of 11</span><h2>The three players</h2><ul><li>TX -- a distant FM transmitter (KAWO Boise, 104.3 MHz, ~650 km), normally BELOW your radio horizon -&gt; that channel is empty noise most of the time.</li><li>RX -- your antenna/RTL-SDR watching the empty channel.</li><li>The meteor trail -- a line of ionized plasma (free electrons) at ~85-120 km, created as the meteoroid ablates. It can briefly reflect VHF radio.</li><li>When the geometry is right, the trail relays TX -&gt; RX and the channel lights up for a fraction of a second: a &#x27;ping&#x27; (candidate count).</li></ul></section><section class="slide"><span class="no">Slide 3 of 11</span><h2>The specular / ellipsoid condition</h2><p class="sub">A trail reflects to you only where it is TANGENT to a TX/RX-focus ellipsoid</p><ul><li class="warn">meteor trail (tangent here)</li><li>P = reflection point (~100 km up)</li><li>TX  (Boise, 104.3 MHz)</li><li>RX  (your antenna)</li><li>Ellipsoid = all points P where TX-&gt;P-&gt;RX path length is constant (TX &amp; RX are its foci).</li><li>At the tangent point the two ray angles are equal (ellipse reflection property) = specular condition.</li></ul></section><section class="slide"><span class="no">Slide 4 of 11</span><h2>Why only certain meteors reflect to YOU</h2><ul><li>Two conditions must BOTH hold:</li><ul class='sub'><li>PLACE -- the trail crosses ~85-120 km over the common volume, AND ORIENTATION -- it is tangent to the ellipsoid there (perpendicular to the bisector of the TX-P-RX angle).</li></ul><li>A trail pointing the wrong way has no tangent point in your illuminated region.</li><li>-&gt; You detect a SUBSET of meteors, never all of them. Undercounting is inherent.</li><li>A trail points AWAY from its radiant, so the RADIANT position controls which meteors can be specular for your particular TX-RX path.</li></ul></section><section class="slide"><span class="no">Slide 5 of 11</span><h2>Hot spots: where the echoes actually come from</h2><ul><li>Because trail orientation is fixed by the radiant, the specular solutions cluster in specific PATCHES off to the SIDES of the TX-RX great-circle path.</li><li>Echoes generally do NOT come from the midpoint straight down the Boise line -- they come from those side &#x27;hot spots&#x27;.</li><li>Shower (single radiant): usually TWO hot-spot regions.</li><li>Sporadics (all radiants): the response smears into a broad sensitivity pattern.</li><li>The hot spots sit ~100 km up and a few hundred km away -&gt; low elevation (next slide).</li></ul></section><section class="slide"><span class="no">Slide 6 of 11</span><h2>From geometry to antenna aim</h2><ul><li>Reflection point: ~100 km altitude, a few hundred km distant.</li><ul class='sub'><li>-&gt; the echo arrives at a LOW elevation angle (~5-20 deg), near the horizon.</li></ul><li>Direction: toward the path / transmitter -- roughly SE toward Boise.</li><li class="good">So aim antenna gain SE and LOW, not at the zenith:</li><ul class='sub'><li>horizontal dipole broadside SE, or a Yagi/Moxon pointed at Boise.</li></ul><li>Max usable TX-RX range ~2000 km (limited by the ~100 km reflection height and the horizon at both ends). 650 km (Boise) sits comfortably inside that.</li></ul></section><section class="slide"><span class="no">Slide 7 of 11</span><h2>Why this shapes the diurnal curve</h2><ul><li>Sporadic meteor rate peaks ~06h local: Earth&#x27;s APEX (its direction of motion)</li><ul class='sub'><li>rides highest before dawn -&gt; more meteors, more with usable geometry.</li></ul><li>What you RECORD = the true meteor diurnal CONVOLVED with your fixed geometry + antenna pattern (which radiants have hot spots for you, and when).</li><li>So your radio curve still shows a clear daily rhythm, but its exact shape is a fingerprint of YOUR station -- keep the setup constant so it stays comparable.</li></ul></section><section class="slide"><span class="no">Slide 8 of 11</span><h2>Why shower profiles have structure</h2><ul><li>A shower has ONE radiant that drifts across the sky through the night.</li><li>Specular hot spots exist only for certain radiant positions/elevations, so the observed radio rate rises and falls with the radiant&#x27;s geometry.</li><li>This can produce DOUBLE peaks or gaps that are NOT in the true meteor flux -- artifacts of the forward-scatter geometry, not the shower itself.</li><li>Interpreting activity therefore needs the IMO statistical-reduction method, not just raw counts (see the Science deck / references).</li></ul></section><section class="slide"><span class="no">Slide 9 of 11</span><h2>What you actually see: two echo types</h2><ul><li>UNDERDENSE trail (low electron density):</li><ul class='sub'><li>wave passes through; electrons scatter independently; brief spike with fast exponential decay (&lt;~1 s). The majority of events.</li></ul><li>OVERDENSE trail (high electron density):</li><ul class='sub'><li>reflects like a metal cylinder; longer echo (seconds), can flutter/distort as upper-atmosphere winds move the trail.</li></ul><li>Both are real counts; the DURATION distribution carries meteoroid mass-index info.</li></ul></section><section class="slide"><span class="no">Slide 10 of 11</span><h2>From geometry to a &#x27;count&#x27; (honest limits)</h2><ul><li>Each favorable meteor -&gt; one candidate ping. But aircraft, sporadic-E, lightning, and interference also make bursts -&gt; you must CLASSIFY (meteor vs the rest).</li><li class="good">What you count = a RELATIVE, geometry-weighted meteor rate from a CONSISTENT setup -- not absolute flux.</li><li>One modest station CANNOT give absolute flux, velocity, radiant, or orbit.</li><li>Consistency is everything: same frequency, gain, antenna, threshold -&gt; valid day-to-day and shower-to-shower comparisons.</li></ul></section><section class="slide"><span class="no">Slide 11 of 11</span><h2>Summary</h2><ul><li>Reflection needs the trail TANGENT to a TX/RX-focus ellipsoid (specular) -- only certain positions AND orientations qualify, so you sample a subset.</li><li>Echoes come from side &#x27;hot spots&#x27; ~100 km up at low elevation -&gt; aim antenna SE, low.</li><li>Apex motion + your geometry + antenna pattern together shape the diurnal &amp; shower curves.</li><li>A &#x27;count&#x27; = a classified meteor echo: relative, not absolute.</li><li>Filtering (classifier) + a constant setup are what make the counts scientifically meaningful.</li></ul></section>
+</div>
+<footer><div class="foot-in">
+  <span>Generated from Reflection_Geometry.pptx by build_site.py</span>
+  <span><a href="https://github.com/jrb985/radio-meteor-project">source on GitHub</a> &middot; code v1.4</span>
+</div></footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  function cur() {
+    var s = root.getAttribute('data-theme');
+    if (s) return s;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function sync() { btn.textContent = cur() === 'dark' ? '\u2600 theme' : '\u263E theme'; }
+  btn.addEventListener('click', function () {
+    root.setAttribute('data-theme', cur() === 'dark' ? 'light' : 'dark');
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

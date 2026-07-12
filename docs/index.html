@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radio Meteor Project — FM forward-scatter meteor detection</title>
+<meta name="description" content="An RTL-SDR meteor detector using FM forward-scatter: listening on a vacant 104.3 MHz for distant transmitters reflected off meteor trails.">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>☄️</text></svg>">
+<style>
+:root {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+  --serif:Georgia,'Iowan Old Style','Palatino Linotype',serif;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+    --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+    --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+    --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="light"] {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+}
+:root[data-theme="dark"] {
+  --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+  --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+  --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+  --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+}
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; line-height:1.6;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+.wrap { width:100%; max-width:940px; margin:0 auto;
+  padding:clamp(40px,8vh,96px) clamp(22px,5vw,40px); flex:1; }
+/* A waterfall trace: the motif of the whole project. */
+.trace { display:flex; gap:4px; align-items:flex-end; height:44px; margin-bottom:26px; }
+.trace span { width:4px; background:var(--ion); border-radius:3px 3px 0 0; opacity:.55; }
+.trace span.ping { opacity:1; background:var(--ember); }
+.eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ion); display:flex; align-items:center;
+  gap:.7em; margin:0 0 18px; }
+.eyebrow::before { content:""; width:26px; height:2px; background:var(--ion); }
+h1 { font-family:var(--serif); font-weight:600; font-size:clamp(32px,6vw,58px);
+  line-height:1.05; letter-spacing:-.015em; margin:0 0 18px; text-wrap:balance; max-width:20ch; }
+.lede { font-size:clamp(16px,2vw,20px); color:var(--ink-soft); max-width:62ch; margin:0 0 14px; }
+.meta { font-family:var(--mono); font-size:12.5px; color:var(--ink-faint);
+  letter-spacing:.03em; margin:0 0 44px; }
+.meta b { color:var(--ink-soft); font-weight:500; }
+
+.decks { display:grid; grid-template-columns:repeat(2,1fr); gap:clamp(16px,2.4vw,24px); }
+@media (max-width:560px) { .decks { grid-template-columns:1fr; } }
+a.deck { display:flex; flex-direction:column; gap:12px; text-decoration:none;
+  background:var(--surface); border:1px solid var(--line); border-radius:18px;
+  padding:clamp(22px,3vw,30px); box-shadow:var(--shadow); color:inherit;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+a.deck:hover { transform:translateY(-3px);
+  border-color:color-mix(in srgb,var(--ion) 50%,var(--line));
+  box-shadow:0 6px 14px rgba(0,0,0,.08),0 22px 50px rgba(0,0,0,.12); }
+a.deck:focus-visible { outline:2px solid var(--ion); outline-offset:3px; }
+.deck .glyph { font-size:34px; line-height:1; }
+.deck .num { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+.deck h2 { font-family:var(--serif); font-weight:600; font-size:clamp(20px,2.6vw,26px);
+  margin:0; line-height:1.14; }
+.deck p { margin:0; font-size:14.5px; color:var(--ink-soft); }
+.deck .go { margin-top:auto; font-family:var(--mono); font-size:12px;
+  letter-spacing:.05em; color:var(--ion); display:flex; align-items:center; gap:7px; }
+.deck .go::after { content:"\2192"; transition:transform .18s ease; }
+a.deck:hover .go::after { transform:translateX(4px); }
+
+/* ---- deck page ---- */
+.home { position:fixed; top:16px; left:18px; z-index:50; font-family:var(--mono);
+  font-size:12px; letter-spacing:.05em; text-decoration:none; padding:7px 13px;
+  border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); backdrop-filter:blur(6px); }
+.home:hover { color:var(--ion); }
+.dl { display:inline-flex; align-items:center; gap:8px; font-family:var(--mono);
+  font-size:12.5px; text-decoration:none; color:var(--ion);
+  border:1px solid var(--line); border-radius:999px; padding:8px 15px;
+  background:var(--surface); margin-bottom:40px; }
+.dl:hover { border-color:color-mix(in srgb,var(--ion) 50%,var(--line)); }
+section.slide { background:var(--surface); border:1px solid var(--line);
+  border-radius:18px; padding:clamp(22px,3vw,32px); margin-bottom:clamp(16px,2vw,22px);
+  box-shadow:var(--shadow); }
+section.slide > .no { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+section.slide h2 { font-family:var(--serif); font-weight:600;
+  font-size:clamp(21px,2.8vw,29px); margin:6px 0 4px; line-height:1.15; color:var(--ion); }
+section.slide .sub { color:var(--ink-soft); font-size:15px; margin:0 0 14px; }
+section.slide ul { margin:10px 0 0; padding-left:20px; }
+section.slide ul.sub { margin:2px 0 6px; padding-left:22px; list-style:circle;
+  color:var(--ink-soft); font-size:14.5px; }
+section.slide li { margin:5px 0; }
+section.slide li.good { color:var(--good); }
+section.slide li.warn { color:var(--ember); }
+figure { margin:16px 0 0; }
+figure img { max-width:100%; height:auto; border-radius:12px; border:1px solid var(--line); }
+.tablewrap { overflow-x:auto; margin:14px 0 0; }
+table { border-collapse:collapse; width:100%; font-size:14px; min-width:520px; }
+th { text-align:left; background:var(--ion-soft); color:var(--ink);
+  font-weight:600; padding:9px 11px; border:1px solid var(--line); }
+td { padding:9px 11px; border:1px solid var(--line); color:var(--ink-soft); vertical-align:top; }
+td:first-child { color:var(--ink); font-weight:500; }
+.flow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0 4px; }
+.chip { font-family:var(--mono); font-size:12px; background:var(--ion-soft);
+  color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:8px 12px; }
+.arrow { color:var(--ink-faint); }
+
+footer { border-top:1px solid var(--line); }
+.foot-in { max-width:940px; margin:0 auto; padding:22px clamp(22px,5vw,40px);
+  font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);
+  letter-spacing:.03em; display:flex; flex-wrap:wrap; gap:6px 18px;
+  justify-content:space-between; }
+.foot-in a { color:var(--ink-faint); }
+.theme-toggle { position:fixed; top:16px; right:18px; z-index:40;
+  font-family:var(--mono); font-size:12px; letter-spacing:.05em;
+  padding:7px 13px; border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); cursor:pointer; backdrop-filter:blur(6px); }
+.theme-toggle:hover { color:var(--ion); }
+.theme-toggle:focus-visible { outline:2px solid var(--ion); outline-offset:2px; }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme">&#9790; theme</button>
+<div class="wrap">
+  <div class="trace" aria-hidden="true"><span style="height:22%"></span><span style="height:38%"></span><span style="height:30%"></span><span style="height:52%"></span><span style="height:34%"></span><span class="ping" style="height:100%"></span><span style="height:44%"></span><span style="height:28%"></span><span style="height:40%"></span><span style="height:24%"></span><span style="height:33%"></span></div>
+  <p class="eyebrow">Radio Meteor Project</p>
+  <h1>Detecting meteors by radio, from a cloudy city</h1>
+  <p class="lede">An RTL-SDR listens on a locally vacant FM channel &mdash; 104.3&nbsp;MHz &mdash;
+  for the brief reflection of a distant, over-the-horizon transmitter off the ionized trail
+  of a meteor. Each reflection is a &ldquo;ping.&rdquo; It works in daylight, and it works
+  through the overcast that makes visual meteor watching hopeless in Seattle.</p>
+  <p class="meta"><b>Station</b> Seattle, WA &nbsp;&middot;&nbsp; <b>Reference</b> 104.3&nbsp;MHz
+  (KAWO Boise, ~650&nbsp;km) &nbsp;&middot;&nbsp; <b>Hardware</b> RTL-SDR + Raspberry&nbsp;Pi&nbsp;3B+
+  &nbsp;&middot;&nbsp; <b>code v1.4</b></p>
+  <div class="decks">
+    <a class="deck" href="architecture.html">
+      <span class="glyph" aria-hidden="true">🛰️</span>
+      <span class="num">Deck 01 &middot; Code</span>
+      <h2>Architecture &amp; version history</h2>
+      <p>How the detector is built: the hardware chain, the DSP pipeline, the bring-up lessons, and what landed in each version from v1.0 to the v1.4 low-memory profile.</p>
+      <span class="go">Open deck</span>
+    </a><a class="deck" href="workflow.html">
+      <span class="glyph" aria-hidden="true">🧭</span>
+      <span class="num">Deck 02 &middot; Workflow</span>
+      <h2>How the scripts fit together</h2>
+      <p>A living map of the codebase: the data path from RF to a logged ping, the module architecture, the operational workflow you actually follow, and a command cheat-sheet.</p>
+      <span class="go">Open deck</span>
+    </a><a class="deck" href="geometry.html">
+      <span class="glyph" aria-hidden="true">📐</span>
+      <span class="num">Deck 03 &middot; Physics</span>
+      <h2>Reflection geometry</h2>
+      <p>Why only a subset of meteors ever reflect to you: the forward-scatter specular condition, the ellipsoid, the side hot-spots, and what that does to your counts.</p>
+      <span class="go">Open deck</span>
+    </a><a class="deck" href="science.html">
+      <span class="glyph" aria-hidden="true">🔬</span>
+      <span class="num">Deck 04 &middot; Science</span>
+      <h2>What science this can actually yield</h2>
+      <p>Counts, activity profiles, the diurnal curve and echo-duration stats — where amateurs publish, and the honest limits of a single modest station.</p>
+      <span class="go">Open deck</span>
+    </a><a class="deck" href="longrun.html">
+      <span class="glyph" aria-hidden="true">🌙</span>
+      <span class="num">Deck 05 &middot; Operations</span>
+      <h2>Planning a 10–12 hour run</h2>
+      <p>What it takes to leave it running all night: the ranked limitations, what v1.3/v1.4 fixed, the pre-flight checklist, and which meteor showers are worth the night.</p>
+      <span class="go">Open deck</span>
+    </a><a class="deck" href="antenna.html">
+      <span class="glyph" aria-hidden="true">📡</span>
+      <span class="num">Deck 06 &middot; Hardware</span>
+      <h2>DIY antenna options</h2>
+      <p>The single biggest sensitivity lever. Getting outside beats the antenna type — then dipole vs. Yagi, and where to aim.</p>
+      <span class="go">Open deck</span>
+    </a><a class="deck" href="https://github.com/jrb985/radio-meteor-project/tree/main/deploy/pi">
+      <span class="glyph" aria-hidden="true">🖥️</span>
+      <span class="num">Code &middot; Deployment</span>
+      <h2>Run it headless on a Raspberry Pi</h2>
+      <p>The deployment layer: installer, systemd service, status page, and the
+      low-memory profile that fits the whole detector into a 1&nbsp;GB Pi&nbsp;3B+
+      at ~100&nbsp;MB of RSS.</p>
+      <span class="go">Open on GitHub</span>
+    </a>
+  </div>
+</div>
+<footer><div class="foot-in">
+  <span>A working detector, not a proposal · built and measured, hardware run pending</span>
+  <span><a href="https://github.com/jrb985/radio-meteor-project">source on GitHub</a> &middot; code v1.4</span>
+</div></footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  function cur() {
+    var s = root.getAttribute('data-theme');
+    if (s) return s;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function sync() { btn.textContent = cur() === 'dark' ? '\u2600 theme' : '\u263E theme'; }
+  btn.addEventListener('click', function () {
+    root.setAttribute('data-theme', cur() === 'dark' ? 'light' : 'dark');
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

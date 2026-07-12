@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DIY antenna options — Radio Meteor Project</title>
+<meta name="description" content="The single biggest sensitivity lever. Getting outside beats the antenna type — then dipole vs. Yagi, and where to aim.">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>📡</text></svg>">
+<style>
+:root {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+  --serif:Georgia,'Iowan Old Style','Palatino Linotype',serif;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+    --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+    --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+    --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="light"] {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+}
+:root[data-theme="dark"] {
+  --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+  --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+  --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+  --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+}
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; line-height:1.6;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+.wrap { width:100%; max-width:940px; margin:0 auto;
+  padding:clamp(40px,8vh,96px) clamp(22px,5vw,40px); flex:1; }
+/* A waterfall trace: the motif of the whole project. */
+.trace { display:flex; gap:4px; align-items:flex-end; height:44px; margin-bottom:26px; }
+.trace span { width:4px; background:var(--ion); border-radius:3px 3px 0 0; opacity:.55; }
+.trace span.ping { opacity:1; background:var(--ember); }
+.eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ion); display:flex; align-items:center;
+  gap:.7em; margin:0 0 18px; }
+.eyebrow::before { content:""; width:26px; height:2px; background:var(--ion); }
+h1 { font-family:var(--serif); font-weight:600; font-size:clamp(32px,6vw,58px);
+  line-height:1.05; letter-spacing:-.015em; margin:0 0 18px; text-wrap:balance; max-width:20ch; }
+.lede { font-size:clamp(16px,2vw,20px); color:var(--ink-soft); max-width:62ch; margin:0 0 14px; }
+.meta { font-family:var(--mono); font-size:12.5px; color:var(--ink-faint);
+  letter-spacing:.03em; margin:0 0 44px; }
+.meta b { color:var(--ink-soft); font-weight:500; }
+
+.decks { display:grid; grid-template-columns:repeat(2,1fr); gap:clamp(16px,2.4vw,24px); }
+@media (max-width:560px) { .decks { grid-template-columns:1fr; } }
+a.deck { display:flex; flex-direction:column; gap:12px; text-decoration:none;
+  background:var(--surface); border:1px solid var(--line); border-radius:18px;
+  padding:clamp(22px,3vw,30px); box-shadow:var(--shadow); color:inherit;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+a.deck:hover { transform:translateY(-3px);
+  border-color:color-mix(in srgb,var(--ion) 50%,var(--line));
+  box-shadow:0 6px 14px rgba(0,0,0,.08),0 22px 50px rgba(0,0,0,.12); }
+a.deck:focus-visible { outline:2px solid var(--ion); outline-offset:3px; }
+.deck .glyph { font-size:34px; line-height:1; }
+.deck .num { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+.deck h2 { font-family:var(--serif); font-weight:600; font-size:clamp(20px,2.6vw,26px);
+  margin:0; line-height:1.14; }
+.deck p { margin:0; font-size:14.5px; color:var(--ink-soft); }
+.deck .go { margin-top:auto; font-family:var(--mono); font-size:12px;
+  letter-spacing:.05em; color:var(--ion); display:flex; align-items:center; gap:7px; }
+.deck .go::after { content:"\2192"; transition:transform .18s ease; }
+a.deck:hover .go::after { transform:translateX(4px); }
+
+/* ---- deck page ---- */
+.home { position:fixed; top:16px; left:18px; z-index:50; font-family:var(--mono);
+  font-size:12px; letter-spacing:.05em; text-decoration:none; padding:7px 13px;
+  border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); backdrop-filter:blur(6px); }
+.home:hover { color:var(--ion); }
+.dl { display:inline-flex; align-items:center; gap:8px; font-family:var(--mono);
+  font-size:12.5px; text-decoration:none; color:var(--ion);
+  border:1px solid var(--line); border-radius:999px; padding:8px 15px;
+  background:var(--surface); margin-bottom:40px; }
+.dl:hover { border-color:color-mix(in srgb,var(--ion) 50%,var(--line)); }
+section.slide { background:var(--surface); border:1px solid var(--line);
+  border-radius:18px; padding:clamp(22px,3vw,32px); margin-bottom:clamp(16px,2vw,22px);
+  box-shadow:var(--shadow); }
+section.slide > .no { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+section.slide h2 { font-family:var(--serif); font-weight:600;
+  font-size:clamp(21px,2.8vw,29px); margin:6px 0 4px; line-height:1.15; color:var(--ion); }
+section.slide .sub { color:var(--ink-soft); font-size:15px; margin:0 0 14px; }
+section.slide ul { margin:10px 0 0; padding-left:20px; }
+section.slide ul.sub { margin:2px 0 6px; padding-left:22px; list-style:circle;
+  color:var(--ink-soft); font-size:14.5px; }
+section.slide li { margin:5px 0; }
+section.slide li.good { color:var(--good); }
+section.slide li.warn { color:var(--ember); }
+figure { margin:16px 0 0; }
+figure img { max-width:100%; height:auto; border-radius:12px; border:1px solid var(--line); }
+.tablewrap { overflow-x:auto; margin:14px 0 0; }
+table { border-collapse:collapse; width:100%; font-size:14px; min-width:520px; }
+th { text-align:left; background:var(--ion-soft); color:var(--ink);
+  font-weight:600; padding:9px 11px; border:1px solid var(--line); }
+td { padding:9px 11px; border:1px solid var(--line); color:var(--ink-soft); vertical-align:top; }
+td:first-child { color:var(--ink); font-weight:500; }
+.flow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0 4px; }
+.chip { font-family:var(--mono); font-size:12px; background:var(--ion-soft);
+  color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:8px 12px; }
+.arrow { color:var(--ink-faint); }
+
+footer { border-top:1px solid var(--line); }
+.foot-in { max-width:940px; margin:0 auto; padding:22px clamp(22px,5vw,40px);
+  font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);
+  letter-spacing:.03em; display:flex; flex-wrap:wrap; gap:6px 18px;
+  justify-content:space-between; }
+.foot-in a { color:var(--ink-faint); }
+.theme-toggle { position:fixed; top:16px; right:18px; z-index:40;
+  font-family:var(--mono); font-size:12px; letter-spacing:.05em;
+  padding:7px 13px; border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); cursor:pointer; backdrop-filter:blur(6px); }
+.theme-toggle:hover { color:var(--ion); }
+.theme-toggle:focus-visible { outline:2px solid var(--ion); outline-offset:2px; }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme">&#9790; theme</button>
+<a class="home" href="index.html">&#8592; Radio Meteor Project</a>
+<div class="wrap">
+  <div class="trace" aria-hidden="true"><span style="height:22%"></span><span style="height:38%"></span><span style="height:30%"></span><span style="height:52%"></span><span style="height:34%"></span><span class="ping" style="height:100%"></span><span style="height:44%"></span><span style="height:28%"></span><span style="height:40%"></span><span style="height:24%"></span><span style="height:33%"></span></div>
+  <p class="eyebrow">Radio Meteor Project</p>
+  <h1>DIY antenna options</h1>
+  <p class="lede">The single biggest sensitivity lever. Getting outside beats the antenna type — then dipole vs. Yagi, and where to aim.</p>
+  <a class="dl" href="decks/DIY_Antenna_Options.pptx" download>&#8595; Download the .pptx</a>
+  <section class="slide"><span class="no">Slide 1 of 10</span><h2>DIY Antenna Options</h2><p class="sub">Improving reception for 104.3 MHz FM meteor forward-scatter  |  Seattle</p><ul><li>Goal: hear a distant FM carrier (Boise, ~650 km SE) reflected off meteor trails. That is a WEAK-signal task -- antenna and location matter a lot.</li><li class="good">Bottom line up front: getting OUTSIDE and away from house noise is usually a bigger win than which antenna you build.</li></ul></section><section class="slide"><span class="no">Slide 2 of 10</span><h2>The RF you&#x27;re working with</h2><ul><li>Frequency 104.3 MHz -&gt; wavelength (lambda) ~ 2.88 m. Key sizes:</li><ul class='sub'><li>quarter-wave ~ 72 cm;  half-wave ~ 144 cm (wire ~5% shorter).</li></ul><li>What &#x27;a better antenna&#x27; buys you:</li><ul class='sub'><li>GAIN on the weak distant path (more pings, fainter pings detected), DIRECTIVITY: aim at Boise (~SE) and reject strong LOCAL Seattle FM, LOWER NOISE: away from house electronics = lower noise floor.</li></ul><li>Polarization: US FM is usually circular/mixed, so H or V both work; prefer HORIZONTAL to cut man-made (often vertical) noise.</li><li>Geometry: meteor echoes arrive from LOW elevation toward the transmitter, so aim ~SE, near the horizon (not straight up).</li></ul></section><section class="slide"><span class="no">Slide 3 of 10</span><h2>Your current whip: what to expect -- and is it worth it?</h2><ul><li class="good">Worth it? YES, as a baseline / proof -- you already saw it receive local FM.</li><li>For WEAK meteor scatter, a small indoor whip is marginal:</li><ul class='sub'><li>expect low counts and only the STRONGER pings; many will be missed.</li></ul><li>Quick wins with what you have (no build):</li><ul class='sub'><li>If it is the telescopic dipole kit, set each element to ~68-72 cm (1/4-wave).</li><li>Stand it VERTICAL as a whip, or better, lay the two elements HORIZONTAL in a line for a 1/2-wave dipole.</li><li>Move it to a window facing SE (toward Boise); get it as high as you can.</li></ul><li>Use the whip to establish a baseline ping rate, then compare after upgrades.</li></ul></section><section class="slide"><span class="no">Slide 4 of 10</span><h2>Indoor vs outdoor -- the biggest lever</h2><ul><li class="good">This likely matters MORE than antenna type.</li><li>Indoors you fight TWO problems:</li><ul class='sub'><li>Building loss: walls/roof/low-E windows/foil insulation = ~10-20 dB down.</li><li>Indoor noise: chargers, LED drivers, PCs, routers raise the VHF noise floor.</li></ul><li>Outdoors, up, and away from electronics can gain ~10-20 dB of SNR -- often the single biggest improvement you can make.</li><li>Progression to try (each step usually helps):</li><ul class='sub'><li>SE-facing window  -&gt;  attic  -&gt;  outside on a short mast / eave.</li></ul><li>Keep the antenna a few feet from metal gutters, wiring, and the house wall.</li></ul></section><section class="slide"><span class="no">Slide 5 of 10</span><h2>DIY antenna options at a glance</h2><p class="sub">All dimensions scale to lambda ~ 2.88 m; cut wire ~5% short of the ideal and check with an online calculator.</p><div class="tablewrap"><table><thead><tr><th>Antenna</th><th>Gain</th><th>Pattern</th><th>Build</th><th>~Cost</th><th>Best for</th></tr></thead><tbody><tr><td>Stock whip / telescopic</td><td>~0-2 dBi</td><td>Omni-ish</td><td>none</td><td>$0</td><td>baseline / testing</td></tr><tr><td>Half-wave dipole (horiz)</td><td>~2 dBi</td><td>Bidirectional</td><td>Low</td><td>$5-15</td><td>easy first upgrade</td></tr><tr><td>Folded dipole</td><td>~2 dBi</td><td>Bidirectional</td><td>Low-Med</td><td>$10</td><td>broadband FM</td></tr><tr><td>Halo / turnstile</td><td>~0-2 dBi</td><td>Omni (H-pol)</td><td>Med</td><td>$15</td><td>no aiming needed</td></tr><tr><td>Moxon (2-element)</td><td>~5-6 dBi</td><td>Directional +F/B</td><td>Med</td><td>$15-25</td><td>compact beam -&gt; Boise</td></tr><tr><td>Yagi (3-element)</td><td>~7-8 dBi</td><td>Directional</td><td>Med-High</td><td>$20-40</td><td>best SNR toward Boise</td></tr></tbody></table></div></section><section class="slide"><span class="no">Slide 6 of 10</span><h2>Option A: Half-wave dipole  (recommended first build)</h2><ul><li>Simplest real upgrade. Two wires/rods, each ~68-69 cm, in a straight line (total ~1.37 m), fed at the center.</li><li>Materials: wire or copper tube, coax (RG-6 is cheap &amp; low-loss), and a common-mode choke/balun at the feedpoint (a few ferrite turns of coax).</li><li>Orientation: HORIZONTAL, wire running NE&lt;-&gt;SW so the broadside faces SE (dipole is bidirectional: SE and NW lobes; the NW lobe is just unused).</li><li>Pros: cheap, easy, big step up from a small whip, low noise if outside.</li><li>Cons: no front/back rejection of local FM (a beam does that).</li></ul></section><section class="slide"><span class="no">Slide 7 of 10</span><h2>Option B: Directional -- Moxon or 3-element Yagi  (best SNR)</h2><ul><li>Adds gain AND rejects strong local Seattle FM coming from other directions -&gt; cleaner detection of the weak Boise path.</li><li>Moxon (2-el): compact rectangle of wire on spreaders; ~5-6 dBi with good front-to-back; forgiving to build. Great value.</li><li>Yagi (3-el): reflector + driven + director on a ~1 m boom; ~7-8 dBi.</li><ul class='sub'><li>Elements ~1.3-1.5 m; use a calculator (e.g. for 104.3 MHz).</li></ul><li>Aim the FRONT toward Boise (~SE, azimuth ~120-130 deg), low elevation.</li><li>Mount horizontally for H-pol; needs a small mast and a way to point it.</li><li>Cons: bigger, must be aimed; overkill until you&#x27;re outside with low noise.</li></ul></section><section class="slide"><span class="no">Slide 8 of 10</span><h2>Feedline &amp; noise tips (cheap dB you shouldn&#x27;t skip)</h2><ul><li>Coax: RG-6 (75 ohm TV coax) is cheap and low-loss at FM; RTL-SDR is happy with it. Keep runs as short as practical.</li><li>Add a common-mode CHOKE at the feedpoint (coil the coax through a ferrite):</li><ul class='sub'><li>stops the coax shield from acting as an antenna and dragging house noise in.</li></ul><li>Route coax away from power wiring, chargers, Ethernet, and the PC.</li><li>Strong local FM can OVERLOAD the RTL-SDR (desense): a directional antenna aimed at Boise + your fixed gain setting both help; back off gain if needed.</li><li>LNA / bias-tee: helps only if you&#x27;re COAX-loss-limited, not NOISE-limited.</li><ul class='sub'><li>At FM with short coax you&#x27;re usually noise-limited -&gt; an LNA won&#x27;t help much.</li></ul></ul></section><section class="slide"><span class="no">Slide 9 of 10</span><h2>Recommended path (cheap -&gt; serious)</h2><ul><li class="good">Step 1 (free): tune the whip/dipole to ~68-72 cm elements, horizontal, at an SE window as high as possible. Baseline the ping rate.</li><li class="good">Step 2 ($5-15): build a horizontal half-wave dipole and put it OUTSIDE, broadside to SE, with a feedpoint choke. Expect the biggest jump here.</li><li class="good">Step 3 ($15-40): Moxon or 3-el Yagi aimed at Boise for real counts and rejection of local FM -- worth it once you&#x27;re outside and noise-limited.</li><li>Re-baseline after each step (same run length) to measure the improvement.</li></ul></section><section class="slide"><span class="no">Slide 10 of 10</span><h2>Summary</h2><ul><li>The current whip is fine to PROVE the system and baseline, but expect low meteor counts, especially indoors.</li><li>Biggest single win: get the antenna OUTSIDE, up, and away from house noise.</li><li>Best cheap build: a horizontal half-wave dipole (~68 cm legs), broadside SE.</li><li>Best performance: a Moxon or 3-el Yagi aimed SE at Boise, once outdoors.</li><li>Feedline hygiene (RG-6 + feedpoint choke, routed away from noise) is free dB.</li><li>Measure each change with an equal-length run so you know what actually helped.</li></ul></section>
+</div>
+<footer><div class="foot-in">
+  <span>Generated from DIY_Antenna_Options.pptx by build_site.py</span>
+  <span><a href="https://github.com/jrb985/radio-meteor-project">source on GitHub</a> &middot; code v1.4</span>
+</div></footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  function cur() {
+    var s = root.getAttribute('data-theme');
+    if (s) return s;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function sync() { btn.textContent = cur() === 'dark' ? '\u2600 theme' : '\u263E theme'; }
+  btn.addEventListener('click', function () {
+    root.setAttribute('data-theme', cur() === 'dark' ? 'light' : 'dark');
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

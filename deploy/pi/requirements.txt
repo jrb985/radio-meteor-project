@@ -1,0 +1,3 @@
+# Pi: numpy + matplotlib come from apt (python3-numpy, python3-matplotlib) via
+# a --system-site-packages venv; only pyrtlsdr is pip-installed here.
+pyrtlsdr>=0.4.0

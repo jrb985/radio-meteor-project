@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture &amp; version history — Radio Meteor Project</title>
+<meta name="description" content="How the detector is built: the hardware chain, the DSP pipeline, the bring-up lessons, and what landed in each version from v1.0 to the v1.4 low-memory profile.">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🛰️</text></svg>">
+<style>
+:root {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+  --serif:Georgia,'Iowan Old Style','Palatino Linotype',serif;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+    --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+    --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+    --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="light"] {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+}
+:root[data-theme="dark"] {
+  --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+  --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+  --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+  --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+}
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; line-height:1.6;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+.wrap { width:100%; max-width:940px; margin:0 auto;
+  padding:clamp(40px,8vh,96px) clamp(22px,5vw,40px); flex:1; }
+/* A waterfall trace: the motif of the whole project. */
+.trace { display:flex; gap:4px; align-items:flex-end; height:44px; margin-bottom:26px; }
+.trace span { width:4px; background:var(--ion); border-radius:3px 3px 0 0; opacity:.55; }
+.trace span.ping { opacity:1; background:var(--ember); }
+.eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ion); display:flex; align-items:center;
+  gap:.7em; margin:0 0 18px; }
+.eyebrow::before { content:""; width:26px; height:2px; background:var(--ion); }
+h1 { font-family:var(--serif); font-weight:600; font-size:clamp(32px,6vw,58px);
+  line-height:1.05; letter-spacing:-.015em; margin:0 0 18px; text-wrap:balance; max-width:20ch; }
+.lede { font-size:clamp(16px,2vw,20px); color:var(--ink-soft); max-width:62ch; margin:0 0 14px; }
+.meta { font-family:var(--mono); font-size:12.5px; color:var(--ink-faint);
+  letter-spacing:.03em; margin:0 0 44px; }
+.meta b { color:var(--ink-soft); font-weight:500; }
+
+.decks { display:grid; grid-template-columns:repeat(2,1fr); gap:clamp(16px,2.4vw,24px); }
+@media (max-width:560px) { .decks { grid-template-columns:1fr; } }
+a.deck { display:flex; flex-direction:column; gap:12px; text-decoration:none;
+  background:var(--surface); border:1px solid var(--line); border-radius:18px;
+  padding:clamp(22px,3vw,30px); box-shadow:var(--shadow); color:inherit;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+a.deck:hover { transform:translateY(-3px);
+  border-color:color-mix(in srgb,var(--ion) 50%,var(--line));
+  box-shadow:0 6px 14px rgba(0,0,0,.08),0 22px 50px rgba(0,0,0,.12); }
+a.deck:focus-visible { outline:2px solid var(--ion); outline-offset:3px; }
+.deck .glyph { font-size:34px; line-height:1; }
+.deck .num { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+.deck h2 { font-family:var(--serif); font-weight:600; font-size:clamp(20px,2.6vw,26px);
+  margin:0; line-height:1.14; }
+.deck p { margin:0; font-size:14.5px; color:var(--ink-soft); }
+.deck .go { margin-top:auto; font-family:var(--mono); font-size:12px;
+  letter-spacing:.05em; color:var(--ion); display:flex; align-items:center; gap:7px; }
+.deck .go::after { content:"\2192"; transition:transform .18s ease; }
+a.deck:hover .go::after { transform:translateX(4px); }
+
+/* ---- deck page ---- */
+.home { position:fixed; top:16px; left:18px; z-index:50; font-family:var(--mono);
+  font-size:12px; letter-spacing:.05em; text-decoration:none; padding:7px 13px;
+  border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); backdrop-filter:blur(6px); }
+.home:hover { color:var(--ion); }
+.dl { display:inline-flex; align-items:center; gap:8px; font-family:var(--mono);
+  font-size:12.5px; text-decoration:none; color:var(--ion);
+  border:1px solid var(--line); border-radius:999px; padding:8px 15px;
+  background:var(--surface); margin-bottom:40px; }
+.dl:hover { border-color:color-mix(in srgb,var(--ion) 50%,var(--line)); }
+section.slide { background:var(--surface); border:1px solid var(--line);
+  border-radius:18px; padding:clamp(22px,3vw,32px); margin-bottom:clamp(16px,2vw,22px);
+  box-shadow:var(--shadow); }
+section.slide > .no { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+section.slide h2 { font-family:var(--serif); font-weight:600;
+  font-size:clamp(21px,2.8vw,29px); margin:6px 0 4px; line-height:1.15; color:var(--ion); }
+section.slide .sub { color:var(--ink-soft); font-size:15px; margin:0 0 14px; }
+section.slide ul { margin:10px 0 0; padding-left:20px; }
+section.slide ul.sub { margin:2px 0 6px; padding-left:22px; list-style:circle;
+  color:var(--ink-soft); font-size:14.5px; }
+section.slide li { margin:5px 0; }
+section.slide li.good { color:var(--good); }
+section.slide li.warn { color:var(--ember); }
+figure { margin:16px 0 0; }
+figure img { max-width:100%; height:auto; border-radius:12px; border:1px solid var(--line); }
+.tablewrap { overflow-x:auto; margin:14px 0 0; }
+table { border-collapse:collapse; width:100%; font-size:14px; min-width:520px; }
+th { text-align:left; background:var(--ion-soft); color:var(--ink);
+  font-weight:600; padding:9px 11px; border:1px solid var(--line); }
+td { padding:9px 11px; border:1px solid var(--line); color:var(--ink-soft); vertical-align:top; }
+td:first-child { color:var(--ink); font-weight:500; }
+.flow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0 4px; }
+.chip { font-family:var(--mono); font-size:12px; background:var(--ion-soft);
+  color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:8px 12px; }
+.arrow { color:var(--ink-faint); }
+
+footer { border-top:1px solid var(--line); }
+.foot-in { max-width:940px; margin:0 auto; padding:22px clamp(22px,5vw,40px);
+  font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);
+  letter-spacing:.03em; display:flex; flex-wrap:wrap; gap:6px 18px;
+  justify-content:space-between; }
+.foot-in a { color:var(--ink-faint); }
+.theme-toggle { position:fixed; top:16px; right:18px; z-index:40;
+  font-family:var(--mono); font-size:12px; letter-spacing:.05em;
+  padding:7px 13px; border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); cursor:pointer; backdrop-filter:blur(6px); }
+.theme-toggle:hover { color:var(--ion); }
+.theme-toggle:focus-visible { outline:2px solid var(--ion); outline-offset:2px; }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme">&#9790; theme</button>
+<a class="home" href="index.html">&#8592; Radio Meteor Project</a>
+<div class="wrap">
+  <div class="trace" aria-hidden="true"><span style="height:22%"></span><span style="height:38%"></span><span style="height:30%"></span><span style="height:52%"></span><span style="height:34%"></span><span class="ping" style="height:100%"></span><span style="height:44%"></span><span style="height:28%"></span><span style="height:40%"></span><span style="height:24%"></span><span style="height:33%"></span></div>
+  <p class="eyebrow">Radio Meteor Project</p>
+  <h1>Architecture &amp; version history</h1>
+  <p class="lede">How the detector is built: the hardware chain, the DSP pipeline, the bring-up lessons, and what landed in each version from v1.0 to the v1.4 low-memory profile.</p>
+  <a class="dl" href="decks/Radio_Meteor_Tracker.pptx" download>&#8595; Download the .pptx</a>
+  <section class="slide"><span class="no">Slide 1 of 17</span><h2>Radio Meteor Tracker</h2><p class="sub">RTL-SDR FM forward-scatter meteor detection  |  Seattle, WA</p><ul><li>Design, status, and roadmap Release v1.2  -  GUI, Classification &amp; Reporting Detect meteors by the radio echoes their ionized trails reflect from a distant FM transmitter that is normally below the horizon.</li></ul></section><section class="slide"><span class="no">Slide 2 of 17</span><h2>What is radio meteor forward-scatter?</h2><ul><li>A meteor entering the atmosphere (~80-120 km) leaves a brief trail of ionized gas that reflects VHF radio like a mirror.</li><li>Point the receiver at a powerful transmitter far beyond the horizon.</li><ul class='sub'><li>Normally you hear nothing (the signal passes overhead).</li><li>When a trail forms in the common volume, it reflects the signal down to you as a brief &#x27;ping&#x27; (a few ms to ~1 s).</li></ul><li>Works day and night, in any weather - a key advantage over visual.</li><li>Count / time-stamp pings to measure meteor activity and shower peaks.</li></ul></section><section class="slide"><span class="no">Slide 3 of 17</span><h2>Choosing the frequency: 104.3 MHz</h2><ul><li>Europe has dedicated beacons (GRAVES 143.05 MHz); North America does not.</li><li>-&gt; Use FM broadcast forward-scatter: a channel VACANT locally but carrying a high-power station a few hundred km away.</li><li>Measured the Seattle FM band with the dongle (fm_vacancy.py):</li><ul class='sub'><li>104.3 MHz sits ~12 dB below the noise floor - locally empty.</li></ul><li>Distant co-channel stations on 104.3 (beyond the horizon):</li><ul class='sub'><li>KAWO, Boise ID  -  52 kW  -  ~650 km  (ideal geometry)</li><li>KSOP-FM, Salt Lake City UT  -  25 kW  -  ~1100 km  (bonus reflector)</li></ul></ul></section><section class="slide"><span class="no">Slide 4 of 17</span><h2>Inputs: Hardware</h2><ul><li>RTL-SDR dongle:</li><ul class='sub'><li>RTL2832U demodulator + Rafael Micro R820T tuner (USB 0BDA:2838)</li><li>Delivers raw IQ samples over USB; tunable ~24-1766 MHz Antenna:</li><li>Small whip (used for bring-up). Weak-signal work wants better:</li><li>horizontal dipole or 3-el Yagi aimed ~SE toward Boise Host PC: Windows 11, USB 2.0+ Driver: WinUSB bound to dongle Interface 0 via Zadig (Interface 1 stays unbound - normal; RTL-SDR uses Interface 0 only)</li></ul></ul></section><section class="slide"><span class="no">Slide 5 of 17</span><h2>Inputs: Software stack</h2><ul><li>Python 3.14 (64-bit)</li><li>pyrtlsdr 0.4.0 -&gt; librtlsdr (rtl-sdr-blog v1.3.6 DLLs, bundled)</li><ul class='sub'><li>Patched to bind a few optional functions as no-ops (DLL lacks them)</li></ul><li>numpy - FFT / band-power / detection math matplotlib - spectrogram &amp; waterfall rendering (Agg for files, TkAgg live)</li><li>python-pptx - this deck rtl_sdr_env.py registers the bundled DLL folder so no PATH edits are needed.</li><li>Config-driven: all parameters live in config.py (frozen dataclass).</li></ul></section><section class="slide"><span class="no">Slide 6 of 17</span><h2>How the detector works (pipeline)</h2><ul><li>1. Tune 250 kHz below 104.3 -&gt; whole 180 kHz channel sits at +250 kHz, clear of the RTL-SDR DC spike.</li><li>2. Read IQ continuously at 1.024 Msps; FFT each ~4 ms block.</li><li>3. Channel power = sum of FFT power in the +-90 kHz detection band.</li><li>4. Baseline = slow EMA of channel power while quiet (the noise floor).</li><li>5. Ping = power rises &gt;= threshold above baseline; ends via hysteresis.</li><ul class='sub'><li>Keep only min_ping_ms .. max_ping_ms duration events.</li></ul><li>6. Log to CSV; (v1.1) save a high-resolution snapshot of the moment.</li></ul></section><section class="slide"><span class="no">Slide 7 of 17</span><h2>Key assumptions</h2><ul><li>104.3 stays locally vacant (no new Seattle station appears on-channel).</li><li>A distant 104.3 carrier (Boise/SLC) is present and stable to reflect.</li><li>Meteor pings are brief (tens of ms to ~1 s) and localized to the channel.</li><li>Events &gt; 2 s are NOT meteors (aircraft scatter, tropo, sporadic-E) -&gt; rejected.</li><li>Fixed gain gives a stable baseline; AGC does not (see next slide).</li><li>The host keeps up with 1.024 Msps USB streaming without dropping samples.</li><li>Single process owns the dongle at a time.</li></ul></section><section class="slide"><span class="no">Slide 8 of 17</span><h2>Bring-up lesson: fixed gain, not AGC</h2><ul><li>First 10-min run used gain=&#x27;auto&#x27;. The AGC hunted:</li><ul class='sub'><li>startup ramp, mid-run band-wide dips, erratic tail.</li><li>6 &#x27;pings&#x27; logged - all AGC artifacts, 0 real.</li></ul><li>Fixes folded into the baseline config:</li><ul class='sub'><li>FIXED gain 40.2 dB (stable baseline ~0.7 dB sigma)</li><li>warmup_skip_s = 20 s (ignore settling)</li><li>max_ping_ms = 2000 (reject aircraft/tropo)</li><li>threshold 6 -&gt; 4 dB (still ~6 sigma)</li></ul><li>Re-run baseline is flat (see plot) -&gt; trustworthy detection.</li></ul>
+<figure><img src="assets/architecture-8.png" alt="" loading="lazy"></figure></section><section class="slide"><span class="no">Slide 9 of 17</span><h2>Proof: real RF off the antenna</h2><ul><li>Spectrograph of live FM capture confirms the full chain works:</li><ul class='sub'><li>antenna -&gt; dongle -&gt; WinUSB -&gt; Python -&gt; image.</li></ul><li>Bright vertical bands = local FM stations at exact channel freqs.</li><li>Flickering texture = live audio modulation (proves it is real signal, not an artifact).</li><li>The vacancy scan then found 104.3 clear for meteor scatter.</li></ul>
+<figure><img src="assets/architecture-9.png" alt="" loading="lazy"></figure></section><section class="slide"><span class="no">Slide 10 of 17</span><h2>v1.1: Trigger snapshots</h2><ul><li>Problem: a ping COUNT cannot tell meteor from aircraft or interference.</li><li>Solution: keep a rolling IQ buffer; on each ping, render a zoomed spectrogram (pre-roll + event + post-roll) marked with the channel.</li><li>New: snapshot.py (IQRingBuffer + save_snapshot).</li><li>Changed: Ping carries sample indices; detector records them; main() saves a PNG per ping under snapshots/. Snapshot errors never stop capture.</li><li>Reading a snapshot:</li><ul class='sub'><li>Meteor -&gt; brief streak LOCALIZED at 104.3 (maybe a Doppler tail)</li><li>Aircraft -&gt; a carrier line SWEEPING in frequency over seconds Interference -&gt; broadband smear across the whole window</li></ul></ul></section><section class="slide"><span class="no">Slide 11 of 17</span><h2>v1.2: GUI, classification &amp; reporting</h2><ul><li>Threaded capture engine (capture_engine.py) keeps the UI responsive.</li><li>Tkinter GUI (gui_app.py): live waterfall, Start/Stop, live freq/gain/ threshold, ping counter, per-class tally, and a snapshot GALLERY with class-colored thumbnails (click to enlarge).</li><li>Auto classification (classify.py) of every ping:</li><ul class='sub'><li>meteor / aircraft / interference, from spectral concentration, frequency drift, and duration. Written to CSV, filename &amp; GUI.</li></ul><li>Session report (session_report.py): pings-per-hour stacked by class, plus a text summary (example at right).</li></ul>
+<figure><img src="assets/architecture-11.png" alt="" loading="lazy"></figure></section><section class="slide"><span class="no">Slide 12 of 17</span><h2>v1.3: Tabbed UI + surviving a long run</h2><ul><li>GUI split into a ttk.Notebook: Live tab (waterfall + side gallery) and Gallery tab (big image viewer, Prev/Next, full event list).</li><li>Problem: an overnight run could not be trusted to finish.</li><li>Auto-reconnect (reconnect.py -&gt; ReconnectingReader): a USB/read error no longer ends the run -- close -&gt; exponential backoff -&gt; reopen -&gt; resume.</li><li>Async snapshots (snapshot.py -&gt; SnapshotWorker): matplotlib rendering moved to a background thread, so it never stalls the capture read and drops USB samples.</li><ul class='sub'><li>If the worker falls behind, extra RENDERS are dropped -- events still logged.</li></ul><li>Shared by CLI, GUI and the Pi service. CLI prints a 5-minute heartbeat.</li></ul></section><section class="slide"><span class="no">Slide 13 of 17</span><h2>v1.4: Fitting a 1 GB Raspberry Pi  (this release)</h2><ul><li>The insight: memory is dominated by SNAPSHOTS, not detection.</li><ul class='sub'><li>One second of IQ at 1.024 Msps = 8.2 MB. A queued snapshot job holds a whole event window: ~4 MB (brief meteor) to ~25 MB (2 s event).</li><li>v1.3&#x27;s 32-JOB queue bound was really a ~790 MB bound -&gt; OOM on a Pi during an aircraft burst, which is exactly when the queue fills.</li></ul><li>Fixes (all shared by CLI / GUI / Pi):</li><ul class='sub'><li>Queue bounded by BYTES. dsp.py: chunked float32 FFT (numpy upcasts to complex128, so the old one-shot FFT spiked ~150-200 MB PER EVENT). Ring buffer is now preallocated + circular (was re-allocating ~33 MB four times a second).</li><li>snapshot_mode = png | npz | off. On the Pi, matplotlib is never imported (~90 MB)</li><ul class='sub'><li>-- events are saved as compact .npz and rendered on a PC (render_snapshots.py).</li></ul></ul><li class="good">Measured: ~104 MB peak RSS on the &#x27;pi&#x27; profile vs ~450-490 MB on the defaults.</li></ul></section><section class="slide"><span class="no">Slide 14 of 17</span><h2>Version roadmap</h2><ul><li>v1.0 - Baseline detector Band-power + EMA baseline + threshold/hysteresis -&gt; CSV log &amp; count.</li><ul class='sub'><li>Hardened: fixed gain, warm-up skip, duration bounds.</li></ul><li>v1.1 - Trigger snapshots Rolling IQ buffer; per-ping high-res spectrogram.</li><li>v1.2 - GUI, classification &amp; reporting Threaded engine; live waterfall + counter + snapshot gallery.</li><ul class='sub'><li>Heuristic meteor/aircraft/interference classifier; session reports.</li></ul><li>v1.3 - Tabbed UI + long-run robustness Live/Gallery tabs; auto-reconnect; async snapshots off the capture thread.</li><li>v1.4 - Low-memory profile  (CURRENT)</li><ul class='sub'><li>Fits the 1 GB Pi 3B+: byte-bounded queue, chunked FFT, circular ring, npz snapshot mode + PC-side rendering. config.py PROFILES[&#x27;pi&#x27;].</li></ul><li>Next Real-hardware validation on a Pi; trained classifier; dark theme; .exe packaging.</li></ul></section><section class="slide"><span class="no">Slide 15 of 17</span><h2>An observing session: a meteor shower night</h2><ul><li>Example: Perseids peak, night of Aug 12-13 (also Delta Aquariids late Jul).</li><li>Before: python fm_vacancy.py to confirm 104.3 still clear; check gain fixed.</li><li>Run: python meteor_detector.py continuously, e.g. 22:00 -&gt; 06:00 local.</li><ul class='sub'><li>Snapshots ON; CSV logging the whole night.</li></ul><li>Expect: ping rate RISES after local midnight toward dawn (Earth&#x27;s leading side faces the meteor stream), and higher near the peak date.</li><li>Watch out: summer sporadic-E can mimic activity - real pings are brief;</li><ul class='sub'><li>E-skip openings last minutes and show in snapshots as sustained signal.</li></ul><li>After: review snapshots, classify, plot pings-per-hour vs time &amp; vs sporadic rate.</li></ul></section><section class="slide"><span class="no">Slide 16 of 17</span><h2>Next steps</h2><ul><li>Antenna upgrade (biggest sensitivity gain): dipole/Yagi aimed SE to Boise.</li><li>Real-hardware validation of v1.3/v1.4 -- all of it is so far verified HEADLESSLY on Windows against synthetic sources; the Pi run is still pending.</li><li>Frequency calibration: rtl_test -p to set freq_correction_ppm.</li><li>Longer unattended runs (overnight) to gather real event statistics, then tune classifier thresholds against confirmed events. Target: Perseids Aug 12-13.</li><li>Later: trained classifier; dark theme + MHz axis polish; package as an .exe.</li><li>Optional: second reference channel (e.g., 104.5 Spokane) for cross-checking.</li><li>Optional: contribute counts to citizen-science meteor networks.</li></ul></section><section class="slide"><span class="no">Slide 17 of 17</span><h2>Caveats &amp; limitations</h2><ul><li>Small whip antenna limits sensitivity -&gt; expect low ping rates for now.</li><li>Summer sporadic-E (Jun-Aug) can cause false pings; distinguish by duration.</li><li>RTL-SDR frequency drift until warmed up / ppm-calibrated.</li><li>Only one process may hold the dongle at a time.</li><li>pyrtlsdr patch lives in site-packages; a reinstall reverts it.</li><li>Classification (v1.2+) is HEURISTIC, not trained -- treat labels as triage, and expect to tune the thresholds in config.py against confirmed events.</li><li>Under heavy load a SNAPSHOT may be dropped (v1.3/v1.4 governors) -- the EVENT is always still classified and logged, so the counts never suffer.</li></ul></section>
+</div>
+<footer><div class="foot-in">
+  <span>Generated from Radio_Meteor_Tracker.pptx by build_site.py</span>
+  <span><a href="https://github.com/jrb985/radio-meteor-project">source on GitHub</a> &middot; code v1.4</span>
+</div></footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  function cur() {
+    var s = root.getAttribute('data-theme');
+    if (s) return s;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function sync() { btn.textContent = cur() === 'dark' ? '\u2600 theme' : '\u263E theme'; }
+  btn.addEventListener('click', function () {
+    root.setAttribute('data-theme', cur() === 'dark' ? 'light' : 'dark');
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+# Whitelist, not a blacklist: ignore EVERYTHING at the top level, then re-include
+# only what the Raspberry Pi needs to run, plus the generated site. Same guard the
+# farm-plan repo uses -- it fails CLOSED, so a new local file is private by
+# default rather than accidentally published.
+#
+# Deliberately NOT published: DEPLOY.md (private runbook), snapshots/ and
+# meteor_events.csv (observation data), tools/rtl-sdr/ (bundled Windows DLLs +
+# Zadig), gui_app.py and the desktop diagnostics, the build_*_pptx.py deck
+# builders and build_site.py (the decks ship as artifacts under docs/decks/),
+# references/ (third-party PDFs).
+#
+# VERIFY BEFORE ANY FIRST PUSH:
+#   git status --short                      # only the files re-included below
+#   git ls-files | Select-String DEPLOY     # must be EMPTY
+/*
+
+!/.gitignore
+!/README.md
+!/README.txt
+
+# The generated GitHub Pages site: index + a page per deck, the .pptx downloads
+# under docs/decks/, images under docs/assets/.
+!/docs/
+
+# The Pi deployment layer: installer, systemd unit, pyrtlsdr patch, status page.
+!/deploy/
+
+# The detector itself -- everything deploy/pi/install.sh actually invokes.
+!/config.py
+!/meteor_detector.py
+!/capture_engine.py
+!/snapshot.py
+!/dsp.py
+!/classify.py
+!/reconnect.py
+!/rtl_sdr_env.py
+!/memutil.py
+!/render_snapshots.py
+
+# tools/ also holds Windows binaries (Zadig, librtlsdr DLLs) -- publish only the
+# memory soak test.
+!/tools/
+/tools/*
+!/tools/mem_soak.py
+
+__pycache__/
+*.pyc

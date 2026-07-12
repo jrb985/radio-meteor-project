@@ -1,0 +1,190 @@
+===============================================================================
+ RADIO METEOR TRACKER  --  DEPLOYMENT GUIDE (Raspberry Pi 3B+)
+===============================================================================
+
+This is the step-by-step guide to get the project running headless, 24/7, on a
+Raspberry Pi after you have copied the project folder onto the Pi. For deeper
+detail (performance, storage, troubleshooting) see deploy/pi/README_PI.md.
+
+The Python app is cross-platform; the Pi setup adds only a Linux deployment
+layer (installer, service, status page). You do NOT need the Windows tools/
+folder (Zadig/DLLs) on the Pi.
+
+-------------------------------------------------------------------------------
+ 0. WHAT YOU ARE BUILDING
+-------------------------------------------------------------------------------
+ A background service that continuously watches 104.3 MHz for meteor "pings"
+ (a distant FM station reflected off a meteor trail), classifies each one
+ (meteor / aircraft / interference), and logs them to meteor_events.csv plus a
+ snapshot per event. You review results over the network or by SSH.
+
+ MEMORY: the 3B+ has only 1 GB, so the service runs the "pi" profile
+ (METEOR_PROFILE=pi), which keeps peak RSS around 100 MB. Its main effect is
+ that the Pi does NOT render snapshot images -- it saves each event as a small
+ .npz you render on your PC later (step 8). See "Fitting in 1 GB" in
+ deploy/pi/README_PI.md for why, and tools/mem_soak.py to re-measure it.
+
+-------------------------------------------------------------------------------
+ 1. HARDWARE CHECKLIST
+-------------------------------------------------------------------------------
+ [ ] Raspberry Pi 3B+ (or newer)
+ [ ] RTL-SDR dongle (RTL2832U + R820T)
+ [ ] Antenna + coax (see DIY_Antenna_Options.pptx; outdoors/SE is best)
+ [ ] GOOD 5V / 3A power supply  (weak power = USB read errors)
+ [ ] Heatsink or fan (sustained load can thermally throttle a bare 3B+)
+ [ ] 16 GB+ SD card (plus a plan for snapshot storage on long runs)
+ [ ] Network (Ethernet or Wi-Fi) for SSH / the status page
+
+-------------------------------------------------------------------------------
+ 2. OPERATING SYSTEM
+-------------------------------------------------------------------------------
+ - Install Raspberry Pi OS (Lite is fine -- no desktop needed).
+ - 64-bit is recommended (noticeably faster numpy).
+ - Enable SSH (Raspberry Pi Imager -> settings, or 'sudo raspi-config').
+ - Update first:
+       sudo apt-get update && sudo apt-get -y upgrade
+
+-------------------------------------------------------------------------------
+ 3. GET THE SOFTWARE ONTO THE PI
+-------------------------------------------------------------------------------
+ Copy the WHOLE project folder to the Pi (any of these):
+
+   From another machine (scp):
+       scp -r radio_metor_tracker  pi@<pi-ip>:~/
+
+   Or rsync (skips junk):
+       rsync -av --exclude '.venv' --exclude '__pycache__' --exclude 'snapshots' \
+             radio_metor_tracker  pi@<pi-ip>:~/
+
+   Or a USB stick: copy the folder, then move it to ~/radio_metor_tracker
+
+ You need at minimum: all the *.py files, config.py, and the deploy/ folder.
+ (The .pptx/.pdf docs and tools/ Windows folder are NOT needed to run it.)
+
+-------------------------------------------------------------------------------
+ 4. RUN THE INSTALLER
+-------------------------------------------------------------------------------
+   ssh pi@<pi-ip>
+   cd ~/radio_metor_tracker
+   bash deploy/pi/install.sh
+
+ The installer will:
+   - apt install: rtl-sdr, librtlsdr-dev, python3-numpy, python3-matplotlib
+   - blacklist the DVB kernel driver (so it doesn't grab the dongle)
+   - create a Python venv (.venv) that also sees the system numpy/matplotlib
+   - pip install pyrtlsdr
+   - patch pyrtlsdr for library compatibility (patch_pyrtlsdr.py)
+   - run a quick device check
+   - set gpu_mem=16 in config.txt (frees ~48 MB the GPU reserves; needs a reboot)
+   - install the systemd service file (with METEOR_PROFILE=pi + a memory cap)
+
+ If it finishes without a fatal error, you are ready.
+
+-------------------------------------------------------------------------------
+ 5. CONFIGURE (edit config.py -- optional, defaults are set)
+-------------------------------------------------------------------------------
+   nano config.py
+
+ Common things to check/adjust:
+   reference_freq_hz    default 104_300_000  (104.3 MHz -- change per your area)
+   gain                 default 40.2         (fixed; raise toward 49.6 if weak)
+   snr_threshold_db     default 4.0          (raise if too many false pings)
+   snapshot_enabled     default True         (set False to drop images entirely)
+   snapshot_dir         default "snapshots"  (point to a USB drive for big runs)
+
+ DO NOT hand-edit the memory settings (snapshot_mode, snapshot_queue_max_bytes,
+ snapshot_max_window_s, ...). They come from PROFILES["pi"] at the bottom of
+ config.py and are applied because the service sets METEOR_PROFILE=pi. Change
+ the profile there if you need to, then re-check with:
+       python tools/mem_soak.py --profile pi
+
+ NOTE: 104.3 MHz was chosen for Seattle (reflects KAWO Boise). If you are
+ elsewhere, run  python fm_vacancy.py  to find a locally-empty FM channel that
+ carries a strong distant station, and set reference_freq_hz to it.
+
+-------------------------------------------------------------------------------
+ 6. VERIFY THE DONGLE
+-------------------------------------------------------------------------------
+   rtl_test -t                 # should list the tuner; Ctrl+C to stop
+   cd ~/radio_metor_tracker
+   .venv/bin/python check_device.py    # opens device, captures IQ, prints stats
+
+ If rtl_test says "usb_claim_interface error", the DVB driver is still loaded:
+   sudo modprobe -r dvb_usb_rtl28xxu
+ If check_device.py fails with a missing-function AttributeError:
+   .venv/bin/python deploy/pi/patch_pyrtlsdr.py
+
+-------------------------------------------------------------------------------
+ 7. START IT (as a service)
+-------------------------------------------------------------------------------
+   sudo systemctl enable --now meteor-tracker     # start now + on every boot
+
+   Check it is running:
+   systemctl status meteor-tracker
+   journalctl -u meteor-tracker -f                 # live log (Ctrl+C to exit)
+
+ The service auto-restarts (~5 s) if it crashes on a USB glitch.
+
+-------------------------------------------------------------------------------
+ 8. SEE RESULTS
+-------------------------------------------------------------------------------
+ Live log (the heartbeat line prints uptime, pings, reconnects and RSS):
+   tail -f ~/radio_metor_tracker/meteor.log
+
+ Web status page (counts + free RAM + detector RSS + report images):
+   cd ~/radio_metor_tracker
+   .venv/bin/python deploy/pi/status_server.py
+   # then browse:  http://<pi-ip>:8080
+
+ Generate/refresh the analysis images on demand:
+   bash deploy/pi/report.sh        # -> session_report.png, diurnal.png
+ Automate hourly (crontab -e):
+   0 * * * * /home/pi/radio_metor_tracker/deploy/pi/report.sh
+
+ SEE THE SNAPSHOT IMAGES (on your PC, not the Pi):
+ The Pi saves each event as a compact .npz instead of rendering a PNG -- that is
+ what keeps it inside 1 GB. Render them on your PC:
+   scp -r pi@<pi-ip>:~/radio_metor_tracker/snapshots  D:\pi_snaps
+   python render_snapshots.py --dir D:\pi_snaps      # -> a PNG beside each .npz
+ Re-runs skip anything already rendered, so just repeat after each copy.
+
+ Outputs created in the project folder:
+   meteor_events.csv                 one row per detected ping (the science log)
+   snapshots/ping_<UTC>_<class>.npz  one capture per ping (render on your PC)
+   session_report.png, diurnal.png   analysis charts
+   meteor.log                        service output
+
+-------------------------------------------------------------------------------
+ 9. MAINTENANCE / STORAGE
+-------------------------------------------------------------------------------
+ - Snapshots pile up (~1-2 MB each .npz). For long deployments: copy them off
+   and prune, OR point snapshot_dir at a USB drive, OR set
+   snapshot_enabled = False. Prune:   find snapshots -type f -mtime +14 -delete
+ - Truncate/rotate the log if it grows:   : > meteor.log   (or use logrotate)
+ - meteor_events.csv is tiny -- KEEP it; it is your permanent record. Every ping
+   is logged here even if its snapshot was dropped or skipped, so the COUNTS
+   never suffer under memory or disk pressure.
+ - Memory check:   free -m    (or the RSS on the status page / in the heartbeat)
+   Expect the detector around 100 MB. If it is climbing steadily over hours,
+   that is a bug -- capture the heartbeat lines and re-run tools/mem_soak.py.
+ - Undervoltage check (want 0x0):   vcgencmd get_throttled
+
+-------------------------------------------------------------------------------
+ 10. STOP / UNINSTALL
+-------------------------------------------------------------------------------
+   sudo systemctl disable --now meteor-tracker      # stop + don't start on boot
+   sudo rm /etc/systemd/system/meteor-tracker.service && sudo systemctl daemon-reload
+   # remove the app:  rm -rf ~/radio_metor_tracker
+
+-------------------------------------------------------------------------------
+ QUICK REFERENCE
+-------------------------------------------------------------------------------
+   Install ............ bash deploy/pi/install.sh
+   Start/stop ......... sudo systemctl {enable --now | disable --now} meteor-tracker
+   Live log ........... journalctl -u meteor-tracker -f
+   Status page ........ .venv/bin/python deploy/pi/status_server.py  (:8080)
+   Reports ............ bash deploy/pi/report.sh
+   Device test ........ rtl_test -t   /   .venv/bin/python check_device.py
+   Memory check ....... free -m   /   python tools/mem_soak.py --profile pi
+   Render snapshots ... (on your PC) python render_snapshots.py --dir D:\pi_snaps
+===============================================================================

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the scripts fit together — Radio Meteor Project</title>
+<meta name="description" content="A living map of the codebase: the data path from RF to a logged ping, the module architecture, the operational workflow you actually follow, and a command cheat-sheet.">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🧭</text></svg>">
+<style>
+:root {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+  --serif:Georgia,'Iowan Old Style','Palatino Linotype',serif;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+    --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+    --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+    --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="light"] {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+}
+:root[data-theme="dark"] {
+  --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+  --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+  --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+  --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+}
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; line-height:1.6;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+.wrap { width:100%; max-width:940px; margin:0 auto;
+  padding:clamp(40px,8vh,96px) clamp(22px,5vw,40px); flex:1; }
+/* A waterfall trace: the motif of the whole project. */
+.trace { display:flex; gap:4px; align-items:flex-end; height:44px; margin-bottom:26px; }
+.trace span { width:4px; background:var(--ion); border-radius:3px 3px 0 0; opacity:.55; }
+.trace span.ping { opacity:1; background:var(--ember); }
+.eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ion); display:flex; align-items:center;
+  gap:.7em; margin:0 0 18px; }
+.eyebrow::before { content:""; width:26px; height:2px; background:var(--ion); }
+h1 { font-family:var(--serif); font-weight:600; font-size:clamp(32px,6vw,58px);
+  line-height:1.05; letter-spacing:-.015em; margin:0 0 18px; text-wrap:balance; max-width:20ch; }
+.lede { font-size:clamp(16px,2vw,20px); color:var(--ink-soft); max-width:62ch; margin:0 0 14px; }
+.meta { font-family:var(--mono); font-size:12.5px; color:var(--ink-faint);
+  letter-spacing:.03em; margin:0 0 44px; }
+.meta b { color:var(--ink-soft); font-weight:500; }
+
+.decks { display:grid; grid-template-columns:repeat(2,1fr); gap:clamp(16px,2.4vw,24px); }
+@media (max-width:560px) { .decks { grid-template-columns:1fr; } }
+a.deck { display:flex; flex-direction:column; gap:12px; text-decoration:none;
+  background:var(--surface); border:1px solid var(--line); border-radius:18px;
+  padding:clamp(22px,3vw,30px); box-shadow:var(--shadow); color:inherit;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+a.deck:hover { transform:translateY(-3px);
+  border-color:color-mix(in srgb,var(--ion) 50%,var(--line));
+  box-shadow:0 6px 14px rgba(0,0,0,.08),0 22px 50px rgba(0,0,0,.12); }
+a.deck:focus-visible { outline:2px solid var(--ion); outline-offset:3px; }
+.deck .glyph { font-size:34px; line-height:1; }
+.deck .num { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+.deck h2 { font-family:var(--serif); font-weight:600; font-size:clamp(20px,2.6vw,26px);
+  margin:0; line-height:1.14; }
+.deck p { margin:0; font-size:14.5px; color:var(--ink-soft); }
+.deck .go { margin-top:auto; font-family:var(--mono); font-size:12px;
+  letter-spacing:.05em; color:var(--ion); display:flex; align-items:center; gap:7px; }
+.deck .go::after { content:"\2192"; transition:transform .18s ease; }
+a.deck:hover .go::after { transform:translateX(4px); }
+
+/* ---- deck page ---- */
+.home { position:fixed; top:16px; left:18px; z-index:50; font-family:var(--mono);
+  font-size:12px; letter-spacing:.05em; text-decoration:none; padding:7px 13px;
+  border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); backdrop-filter:blur(6px); }
+.home:hover { color:var(--ion); }
+.dl { display:inline-flex; align-items:center; gap:8px; font-family:var(--mono);
+  font-size:12.5px; text-decoration:none; color:var(--ion);
+  border:1px solid var(--line); border-radius:999px; padding:8px 15px;
+  background:var(--surface); margin-bottom:40px; }
+.dl:hover { border-color:color-mix(in srgb,var(--ion) 50%,var(--line)); }
+section.slide { background:var(--surface); border:1px solid var(--line);
+  border-radius:18px; padding:clamp(22px,3vw,32px); margin-bottom:clamp(16px,2vw,22px);
+  box-shadow:var(--shadow); }
+section.slide > .no { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+section.slide h2 { font-family:var(--serif); font-weight:600;
+  font-size:clamp(21px,2.8vw,29px); margin:6px 0 4px; line-height:1.15; color:var(--ion); }
+section.slide .sub { color:var(--ink-soft); font-size:15px; margin:0 0 14px; }
+section.slide ul { margin:10px 0 0; padding-left:20px; }
+section.slide ul.sub { margin:2px 0 6px; padding-left:22px; list-style:circle;
+  color:var(--ink-soft); font-size:14.5px; }
+section.slide li { margin:5px 0; }
+section.slide li.good { color:var(--good); }
+section.slide li.warn { color:var(--ember); }
+figure { margin:16px 0 0; }
+figure img { max-width:100%; height:auto; border-radius:12px; border:1px solid var(--line); }
+.tablewrap { overflow-x:auto; margin:14px 0 0; }
+table { border-collapse:collapse; width:100%; font-size:14px; min-width:520px; }
+th { text-align:left; background:var(--ion-soft); color:var(--ink);
+  font-weight:600; padding:9px 11px; border:1px solid var(--line); }
+td { padding:9px 11px; border:1px solid var(--line); color:var(--ink-soft); vertical-align:top; }
+td:first-child { color:var(--ink); font-weight:500; }
+.flow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0 4px; }
+.chip { font-family:var(--mono); font-size:12px; background:var(--ion-soft);
+  color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:8px 12px; }
+.arrow { color:var(--ink-faint); }
+
+footer { border-top:1px solid var(--line); }
+.foot-in { max-width:940px; margin:0 auto; padding:22px clamp(22px,5vw,40px);
+  font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);
+  letter-spacing:.03em; display:flex; flex-wrap:wrap; gap:6px 18px;
+  justify-content:space-between; }
+.foot-in a { color:var(--ink-faint); }
+.theme-toggle { position:fixed; top:16px; right:18px; z-index:40;
+  font-family:var(--mono); font-size:12px; letter-spacing:.05em;
+  padding:7px 13px; border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); cursor:pointer; backdrop-filter:blur(6px); }
+.theme-toggle:hover { color:var(--ion); }
+.theme-toggle:focus-visible { outline:2px solid var(--ion); outline-offset:2px; }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme">&#9790; theme</button>
+<a class="home" href="index.html">&#8592; Radio Meteor Project</a>
+<div class="wrap">
+  <div class="trace" aria-hidden="true"><span style="height:22%"></span><span style="height:38%"></span><span style="height:30%"></span><span style="height:52%"></span><span style="height:34%"></span><span class="ping" style="height:100%"></span><span style="height:44%"></span><span style="height:28%"></span><span style="height:40%"></span><span style="height:24%"></span><span style="height:33%"></span></div>
+  <p class="eyebrow">Radio Meteor Project</p>
+  <h1>How the scripts fit together</h1>
+  <p class="lede">A living map of the codebase: the data path from RF to a logged ping, the module architecture, the operational workflow you actually follow, and a command cheat-sheet.</p>
+  <a class="dl" href="decks/Code_Workflow.pptx" download>&#8595; Download the .pptx</a>
+  <section class="slide"><span class="no">Slide 1 of 12</span><h2>Code Workflow</h2><p class="sub">Radio Meteor Tracker -- how the scripts fit together</p><ul><li class="good">A living document -- regenerated by build_workflow_pptx.py as the code evolves.</li><li>Two views: (1) the DATA pipeline through the modules, and (2) the OPERATIONAL workflow you follow: setup -&gt; verify -&gt; observe -&gt; analyze.</li></ul></section><section class="slide"><span class="no">Slide 2 of 12</span><h2>The data pipeline</h2><p class="sub">RF in -&gt; ping out, through the modules</p><div class="flow"><span class="chip">RF in (antenna)</span><span class=arrow aria-hidden=true>&rarr;</span><span class="chip">RTL-SDR IQ samples</span><span class=arrow aria-hidden=true>&rarr;</span><span class="chip">Band-power + baseline</span><span class=arrow aria-hidden=true>&rarr;</span><span class="chip">Detect ping (thresh/hyst)</span><span class=arrow aria-hidden=true>&rarr;</span><span class="chip">Classify (inline)</span><span class=arrow aria-hidden=true>&rarr;</span><span class="chip">CSV row + snapshot job</span></div>
+<ul><li>IQ read continuously at 1.024 Msps; each ~4 ms block -&gt; FFT power in the +-90 kHz channel.</li><li>EventDetector: EMA noise-floor baseline + threshold/hysteresis -&gt; a Ping (with sample indices).</li><li>On a ping: the IQ window is pulled from the ring buffer and classify.py labels it INLINE (cheap, so the label is ready for the CSV row). The snapshot is handed to a background SnapshotWorker (v1.3).</li><li>KEY INVARIANT: under load the SNAPSHOT is dropped, never the EVENT -- every ping still reaches the CSV, so the counts (the science) never degrade under memory or CPU pressure.</li></ul></section><section class="slide"><span class="no">Slide 3 of 12</span><h2>Modules: who does what</h2><ul><li>config.py -- all tunable params (frozen dataclass) + PROFILES (e.g. &#x27;pi&#x27;).</li><ul class='sub'><li>rtl_sdr_env.py -- registers the bundled librtlsdr DLL dir (imported FIRST).</li></ul><li>Detection core (in meteor_detector.py):</li><ul class='sub'><li>BandPowerAnalyzer (FFT band power) -&gt; EventDetector (EMA baseline + threshold/hysteresis) -&gt; CsvSink (writes rows).</li></ul><li>snapshot.py -- IQRingBuffer (preallocated circular) holds recent IQ;</li><ul class='sub'><li>extract_window pulls the event; SnapshotWorker writes it off-thread.</li></ul><li>dsp.py -- chunked float32 spectrogram + band_stats. Shared by classify and the renderers; keeps the per-event FFT transient at a few MB, not ~200 MB (v1.4).</li><li>classify.py -- labels each ping from its IQ window (runs INLINE, so it must be cheap).</li><li>reconnect.py -- ReconnectingReader: survives USB/read errors (v1.3).</li><li>capture_engine.py -- runs the SAME core on a background thread, publishing to a queue (injectable source -&gt; headless testable).</li><li>gui_app.py -- Tkinter UI drains that queue. CLI and GUI SHARE the core modules.</li></ul></section><section class="slide"><span class="no">Slide 4 of 12</span><h2>The operational workflow</h2><p class="sub">The steps you actually follow</p><div class="flow"><span class="chip">1. Setup</span><span class=arrow aria-hidden=true>&rarr;</span><span class="chip">2. Verify</span><span class=arrow aria-hidden=true>&rarr;</span><span class="chip">3. Choose frequency</span><span class=arrow aria-hidden=true>&rarr;</span><span class="chip">4. Observe</span><span class=arrow aria-hidden=true>&rarr;</span><span class="chip">5. Analyze</span></div>
+<ul><li>1. Setup: bind WinUSB (Zadig), edit config.py.        2. Verify: check_device.py, spectrograph.py.</li><li>3. Choose frequency: fm_scan.py / fm_vacancy.py (already set to 104.3 MHz).</li><li>4. Observe: meteor_detector.py (CLI, long runs) or gui_app.py (GUI).</li><li>5. Analyze: session_report.py (a session) and diurnal.py (many days).</li></ul></section><section class="slide"><span class="no">Slide 5 of 12</span><h2>Stages 1-2: Setup &amp; Verify</h2><ul><li>Setup (once):</li><ul class='sub'><li>Bind WinUSB to the dongle via tools/rtl-sdr/zadig.exe (Interface 0).</li><li>Edit config.py (frequency, gain, thresholds, snapshot options).</li></ul><li>Verify &amp; explore:</li><ul class='sub'><li>check_device.py -- opens the dongle, captures IQ, prints tuner/stats.</li><li>fm_scan.py -- strongest carriers (reception sanity check).</li><li>fm_vacancy.py -- ranks channels -&gt; find a VACANT one for scatter.</li><li>spectrograph.py -- one-shot image; live_spectrograph.py -- live waterfall.</li><li>monitor.py N -- timed headless capture -&gt; power + waterfall PNGs.</li></ul></ul></section><section class="slide"><span class="no">Slide 6 of 12</span><h2>Stage 3: Observe -- CLI vs GUI (same engine)</h2><ul><li>meteor_detector.py (CLI):</li><ul class='sub'><li>Best for LONG / unattended runs -- bounded memory, logs to a file.</li><li>Prints each ping; writes meteor_events.csv + snapshots/.</li></ul><li>gui_app.py (GUI):</li><ul class='sub'><li>Best for WATCHING -- Live tab (waterfall + side gallery) and Gallery tab (big image viewer). Live freq/gain/threshold, ping counter, Report button.</li><li>Not for overnight (thumbnail/list memory grows).</li></ul><li>Both run the identical BandPowerAnalyzer / EventDetector / snapshot / classify code -- the GUI just wraps it in capture_engine.py on a thread.</li></ul></section><section class="slide"><span class="no">Slide 7 of 12</span><h2>Stage 4: Analyze (science tools)</h2><ul><li>session_report.py -- one session: pings-per-hour stacked by class + summary (meteors/hr, span, per-class counts). Also reachable from the GUI &#x27;Report&#x27; button.</li><li>diurnal.py -- MANY days: folds meteor-only counts onto local hour-of-day, exposure-normalized with Poisson error bars (the diurnal-curve first project).</li><li>Inputs: meteor_events.csv (+ the snapshots/ images for visual triage).</li><li>Filter matters: analyze meteor-CLASS events; aircraft/sporadic-E contaminate rates.</li><li>Reference reading + the science rationale: references/ and Science_and_Publishability.pptx.</li></ul></section><section class="slide"><span class="no">Slide 8 of 12</span><h2>Profiles: one codebase, two machines (v1.4)</h2><ul><li>Memory is dominated by SNAPSHOTS, not detection. At 1.024 Msps one second of IQ is 8.2 MB, and a queued snapshot job holds a whole event window (4-25 MB).</li><li>config.py PROFILES[&#x27;pi&#x27;] -- select with METEOR_PROFILE=pi or --profile pi:</li><ul class='sub'><li>snapshot_mode=&#x27;npz&#x27; -- the Pi does NOT render. matplotlib is never imported (~90 MB of RSS) and no multi-second render runs on a slow ARM core.</li><li>snapshot_queue_max_BYTES -- bounding the queue by job COUNT bounds nothing.</li><li>snapshot_max_window_s / _max_rows -- cap any one job; shrink the ring.</li><li>snapshot_skip_aircraft -- near SeaTac these dominate the burst.</li></ul><li class="good">Measured (tools/mem_soak.py, synthetic event flood):</li><ul class='sub'><li class="good">pi profile ~104 MB peak RSS   |   desktop defaults ~450-490 MB The Pi captures; your PC renders:  render_snapshots.py turns .npz -&gt; PNG.</li></ul></ul></section><section class="slide"><span class="no">Slide 9 of 12</span><h2>Data artifacts &amp; how they connect</h2><ul><li>meteor_events.csv -- one row per ping: start_utc, duration_s, peak_snr_db, peak_power_db, classification. (Old 4-col files auto-rotate to .old.)</li><li>snapshots/ping_&lt;UTC&gt;_&lt;class&gt;.png -- one zoomed spectrogram per ping (snapshot_mode =&#x27;png&#x27;, the Windows default); the class is in the filename.</li><li>snapshots/ping_&lt;UTC&gt;_&lt;class&gt;.npz -- the Pi&#x27;s compact float16 spectrogram (~1-2 MB);</li><ul class='sub'><li>render to PNG on a PC with render_snapshots.py. Same image either way.</li></ul><li>Diagnostics: monitor_power.png / monitor_waterfall.png, spectrograph.png.</li><li>Analysis outputs: session_report.png, diurnal.png.</li><li>Everything downstream keys off meteor_events.csv + snapshots/ -- stable contract.</li></ul></section><section class="slide"><span class="no">Slide 10 of 12</span><h2>Command cheat-sheet</h2><div class="tablewrap"><table><thead><tr><th>Command</th><th>Purpose</th><th>Output</th></tr></thead><tbody><tr><td>python check_device.py</td><td>Confirm the dongle works</td><td>console</td></tr><tr><td>python fm_vacancy.py</td><td>Find a vacant FM channel</td><td>console</td></tr><tr><td>python live_spectrograph.py 104.3</td><td>Watch the channel live</td><td>GUI window</td></tr><tr><td>python monitor.py 600</td><td>Timed diagnostic capture</td><td>monitor_*.png</td></tr><tr><td>python meteor_detector.py</td><td>Run detector (CLI, long runs)</td><td>CSV + snapshots/</td></tr><tr><td>python meteor_detector.py --profile pi</td><td>Same, 1 GB Raspberry Pi budget</td><td>CSV + .npz snapshots</td></tr><tr><td>python gui_app.py</td><td>GUI detector (Live/Gallery)</td><td>CSV + snapshots/ + view</td></tr><tr><td>python render_snapshots.py --dir D:\pi_snaps</td><td>Render the Pi&#x27;s .npz -&gt; PNG (on the PC)</td><td>snapshots/*.png</td></tr><tr><td>python tools/mem_soak.py --profile pi</td><td>Flood the pipeline, report peak RSS</td><td>console (PASS/FAIL)</td></tr><tr><td>python session_report.py</td><td>Per-session pings/hour</td><td>session_report.png</td></tr><tr><td>python diurnal.py</td><td>Rate vs local hour (multi-day)</td><td>diurnal.png</td></tr></tbody></table></div></section><section class="slide"><span class="no">Slide 11 of 12</span><h2>How this evolves (living document)</h2><ul><li>This deck is generated by build_workflow_pptx.py -- edit it and re-run to update.</li><li>Landed (no change to the pipeline SHAPE -- each slots into the existing path):</li><ul class='sub'><li class="good">v1.3 auto-reconnect -&gt; wraps the read loop (reconnect.py).</li><li class="good">v1.3 async snapshots -&gt; SnapshotWorker between &#x27;detect&#x27; and &#x27;save&#x27;.</li><li class="good">v1.4 low-memory profile -&gt; dsp.py under classify/render; npz mode; byte- bounded queue; render_snapshots.py added AFTER the pipeline, on the PC.</li></ul><li>Next:</li><ul class='sub'><li>Real-hardware validation on an actual Pi (all v1.3/v1.4 work is so far verified headlessly on Windows against synthetic sources).</li><li>Trained (vs heuristic) classifier -- drops into classify.py, same contract.</li><li>New analysis tools -&gt; just read meteor_events.csv (stable contract) + snapshots/.</li></ul><li>Keep the module diagram and cheat-sheet in sync as scripts are added/renamed.</li></ul></section><section class="slide"><span class="no">Slide 12 of 12</span><h2>Summary</h2><ul><li>Data path: RF -&gt; IQ -&gt; band-power/baseline -&gt; ping -&gt; classify+snapshot -&gt; CSV/snapshots -&gt; analysis.</li><li>Human path: setup -&gt; verify -&gt; choose frequency -&gt; observe (CLI or GUI) -&gt; analyze.</li><li>CLI and GUI share one detection core; the GUI adds a threaded engine + tabs.</li><li>One codebase, two machines: config.py PROFILES[&#x27;pi&#x27;] fits the same core in 1 GB.</li><li>Stable contract: meteor_events.csv + snapshots/ feed all analysis. Under load the snapshot is dropped, never the event -- the counts always survive.</li><li>Living doc -- regenerate with build_workflow_pptx.py after each iteration.</li></ul></section>
+</div>
+<footer><div class="foot-in">
+  <span>Generated from Code_Workflow.pptx by build_site.py</span>
+  <span><a href="https://github.com/jrb985/radio-meteor-project">source on GitHub</a> &middot; code v1.4</span>
+</div></footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  function cur() {
+    var s = root.getAttribute('data-theme');
+    if (s) return s;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function sync() { btn.textContent = cur() === 'dark' ? '\u2600 theme' : '\u263E theme'; }
+  btn.addEventListener('click', function () {
+    root.setAttribute('data-theme', cur() === 'dark' ? 'light' : 'dark');
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

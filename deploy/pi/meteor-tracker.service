@@ -1,0 +1,36 @@
+[Unit]
+Description=Radio Meteor Tracker (FM forward-scatter detector)
+After=network.target
+# Placeholders __PROJECT_DIR__ and __USER__ are filled in by install.sh.
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__PROJECT_DIR__
+ExecStart=__PROJECT_DIR__/.venv/bin/python __PROJECT_DIR__/meteor_detector.py
+
+# --- 1 GB Pi 3B+ memory budget (v1.4) ---------------------------------------
+# Select the low-memory profile in config.py: snapshot_mode="npz" (no matplotlib
+# in this process, ~90 MB saved), a byte-bounded snapshot queue, a capped event
+# window and a smaller ring. Measured peak RSS under an event flood: ~100 MB.
+Environment=METEOR_PROFILE=pi
+# glibc gives each thread its own malloc arena (64 MB of address space apiece).
+# With the capture + snapshot threads churning large NumPy buffers that inflates
+# RSS for no benefit; two arenas is plenty.
+Environment=MALLOC_ARENA_MAX=2
+
+# Backstop, not the plan: if something regresses and the process starts growing,
+# systemd reclaims at MemoryHigh and kills+restarts at MemoryMax -- far better
+# than the kernel OOM killer choosing a victim and taking sshd with it.
+MemoryHigh=300M
+MemoryMax=400M
+
+# In-process auto-reconnect (reconnect.py) handles USB/read glitches; this is the
+# second safety net, for a hard crash or an OOM kill.
+Restart=always
+RestartSec=5
+StandardOutput=append:__PROJECT_DIR__/meteor.log
+StandardError=append:__PROJECT_DIR__/meteor.log
+
+[Install]
+WantedBy=multi-user.target

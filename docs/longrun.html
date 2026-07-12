@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planning a 10–12 hour run — Radio Meteor Project</title>
+<meta name="description" content="What it takes to leave it running all night: the ranked limitations, what v1.3/v1.4 fixed, the pre-flight checklist, and which meteor showers are worth the night.">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🌙</text></svg>">
+<style>
+:root {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+  --serif:Georgia,'Iowan Old Style','Palatino Linotype',serif;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+    --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+    --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+    --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="light"] {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+}
+:root[data-theme="dark"] {
+  --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+  --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+  --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+  --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+}
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; line-height:1.6;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+.wrap { width:100%; max-width:940px; margin:0 auto;
+  padding:clamp(40px,8vh,96px) clamp(22px,5vw,40px); flex:1; }
+/* A waterfall trace: the motif of the whole project. */
+.trace { display:flex; gap:4px; align-items:flex-end; height:44px; margin-bottom:26px; }
+.trace span { width:4px; background:var(--ion); border-radius:3px 3px 0 0; opacity:.55; }
+.trace span.ping { opacity:1; background:var(--ember); }
+.eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ion); display:flex; align-items:center;
+  gap:.7em; margin:0 0 18px; }
+.eyebrow::before { content:""; width:26px; height:2px; background:var(--ion); }
+h1 { font-family:var(--serif); font-weight:600; font-size:clamp(32px,6vw,58px);
+  line-height:1.05; letter-spacing:-.015em; margin:0 0 18px; text-wrap:balance; max-width:20ch; }
+.lede { font-size:clamp(16px,2vw,20px); color:var(--ink-soft); max-width:62ch; margin:0 0 14px; }
+.meta { font-family:var(--mono); font-size:12.5px; color:var(--ink-faint);
+  letter-spacing:.03em; margin:0 0 44px; }
+.meta b { color:var(--ink-soft); font-weight:500; }
+
+.decks { display:grid; grid-template-columns:repeat(2,1fr); gap:clamp(16px,2.4vw,24px); }
+@media (max-width:560px) { .decks { grid-template-columns:1fr; } }
+a.deck { display:flex; flex-direction:column; gap:12px; text-decoration:none;
+  background:var(--surface); border:1px solid var(--line); border-radius:18px;
+  padding:clamp(22px,3vw,30px); box-shadow:var(--shadow); color:inherit;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+a.deck:hover { transform:translateY(-3px);
+  border-color:color-mix(in srgb,var(--ion) 50%,var(--line));
+  box-shadow:0 6px 14px rgba(0,0,0,.08),0 22px 50px rgba(0,0,0,.12); }
+a.deck:focus-visible { outline:2px solid var(--ion); outline-offset:3px; }
+.deck .glyph { font-size:34px; line-height:1; }
+.deck .num { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+.deck h2 { font-family:var(--serif); font-weight:600; font-size:clamp(20px,2.6vw,26px);
+  margin:0; line-height:1.14; }
+.deck p { margin:0; font-size:14.5px; color:var(--ink-soft); }
+.deck .go { margin-top:auto; font-family:var(--mono); font-size:12px;
+  letter-spacing:.05em; color:var(--ion); display:flex; align-items:center; gap:7px; }
+.deck .go::after { content:"\2192"; transition:transform .18s ease; }
+a.deck:hover .go::after { transform:translateX(4px); }
+
+/* ---- deck page ---- */
+.home { position:fixed; top:16px; left:18px; z-index:50; font-family:var(--mono);
+  font-size:12px; letter-spacing:.05em; text-decoration:none; padding:7px 13px;
+  border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); backdrop-filter:blur(6px); }
+.home:hover { color:var(--ion); }
+.dl { display:inline-flex; align-items:center; gap:8px; font-family:var(--mono);
+  font-size:12.5px; text-decoration:none; color:var(--ion);
+  border:1px solid var(--line); border-radius:999px; padding:8px 15px;
+  background:var(--surface); margin-bottom:40px; }
+.dl:hover { border-color:color-mix(in srgb,var(--ion) 50%,var(--line)); }
+section.slide { background:var(--surface); border:1px solid var(--line);
+  border-radius:18px; padding:clamp(22px,3vw,32px); margin-bottom:clamp(16px,2vw,22px);
+  box-shadow:var(--shadow); }
+section.slide > .no { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+section.slide h2 { font-family:var(--serif); font-weight:600;
+  font-size:clamp(21px,2.8vw,29px); margin:6px 0 4px; line-height:1.15; color:var(--ion); }
+section.slide .sub { color:var(--ink-soft); font-size:15px; margin:0 0 14px; }
+section.slide ul { margin:10px 0 0; padding-left:20px; }
+section.slide ul.sub { margin:2px 0 6px; padding-left:22px; list-style:circle;
+  color:var(--ink-soft); font-size:14.5px; }
+section.slide li { margin:5px 0; }
+section.slide li.good { color:var(--good); }
+section.slide li.warn { color:var(--ember); }
+figure { margin:16px 0 0; }
+figure img { max-width:100%; height:auto; border-radius:12px; border:1px solid var(--line); }
+.tablewrap { overflow-x:auto; margin:14px 0 0; }
+table { border-collapse:collapse; width:100%; font-size:14px; min-width:520px; }
+th { text-align:left; background:var(--ion-soft); color:var(--ink);
+  font-weight:600; padding:9px 11px; border:1px solid var(--line); }
+td { padding:9px 11px; border:1px solid var(--line); color:var(--ink-soft); vertical-align:top; }
+td:first-child { color:var(--ink); font-weight:500; }
+.flow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0 4px; }
+.chip { font-family:var(--mono); font-size:12px; background:var(--ion-soft);
+  color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:8px 12px; }
+.arrow { color:var(--ink-faint); }
+
+footer { border-top:1px solid var(--line); }
+.foot-in { max-width:940px; margin:0 auto; padding:22px clamp(22px,5vw,40px);
+  font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);
+  letter-spacing:.03em; display:flex; flex-wrap:wrap; gap:6px 18px;
+  justify-content:space-between; }
+.foot-in a { color:var(--ink-faint); }
+.theme-toggle { position:fixed; top:16px; right:18px; z-index:40;
+  font-family:var(--mono); font-size:12px; letter-spacing:.05em;
+  padding:7px 13px; border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); cursor:pointer; backdrop-filter:blur(6px); }
+.theme-toggle:hover { color:var(--ion); }
+.theme-toggle:focus-visible { outline:2px solid var(--ion); outline-offset:2px; }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme">&#9790; theme</button>
+<a class="home" href="index.html">&#8592; Radio Meteor Project</a>
+<div class="wrap">
+  <div class="trace" aria-hidden="true"><span style="height:22%"></span><span style="height:38%"></span><span style="height:30%"></span><span style="height:52%"></span><span style="height:34%"></span><span class="ping" style="height:100%"></span><span style="height:44%"></span><span style="height:28%"></span><span style="height:40%"></span><span style="height:24%"></span><span style="height:33%"></span></div>
+  <p class="eyebrow">Radio Meteor Project</p>
+  <h1>Planning a 10–12 hour run</h1>
+  <p class="lede">What it takes to leave it running all night: the ranked limitations, what v1.3/v1.4 fixed, the pre-flight checklist, and which meteor showers are worth the night.</p>
+  <a class="dl" href="decks/Longrun_Planning.pptx" download>&#8595; Download the .pptx</a>
+  <section class="slide"><span class="no">Slide 1 of 12</span><h2>Long-Duration Run Planning</h2><p class="sub">Running the meteor detector unattended for 10-12 hours</p><ul><li>Goal: capture a full night (ideally near a shower peak) and review it in the morning via the session report + snapshot gallery.</li><li>Radio Meteor Tracker  |  104.3 MHz FM forward-scatter  |  Seattle, WA Planning only -- no run executed yet.</li></ul></section><section class="slide"><span class="no">Slide 2 of 12</span><h2>What it looks like operationally</h2><ul><li>Run the CLI, NOT the GUI, for long unattended sessions:</li><ul class='sub'><li>python meteor_detector.py  (prints pings, writes CSV + snapshots)</li><li>Memory is bounded: preallocated IQ ring + a BYTE-bounded snapshot queue.</li><li>It will run flat for days; a 5-min heartbeat prints pings/reconnects/RSS.</li></ul><li>The GUI is for WATCHING, not overnight logging:</li><ul class='sub'><li>it keeps every thumbnail image + growing lists in memory -&gt; balloons over hundreds/thousands of events.</li></ul><li>Morning workflow:</li><ul class='sub'><li>python session_report.py  -&gt; pings-per-hour chart + summary browse snapshots/ (classified meteor / aircraft / interference).</li></ul></ul></section><section class="slide"><span class="no">Slide 3 of 12</span><h2>Limitations -- ranked by likelihood to bite</h2><ul><li class="good">1. USB glitch ends the run -- FIXED in v1.3 (auto-reconnect).</li><li class="good">2. Snapshot rendering blocks capture -- FIXED in v1.3 (async worker).</li><li class="good">3. Seattle air traffic (SeaTac) -&gt; snapshot / disk flood -- GOVERNED (v1.3/v1.4).</li><li class="warn">4. Windows sleep / USB suspend / Update restart can interrupt.</li><li class="good">5. Thermal drift -- mostly a NON-issue here (wideband detection).</li><li>6. Analysis burden: many aircraft events to triage.</li><li>The code-side risks are now handled; what is LEFT is operational (4) and human (6). Details on the following slides.</li></ul></section><section class="slide"><span class="no">Slide 4 of 12</span><h2>Limitation 1: USB glitch ends the run  -- FIXED (v1.3)</h2><ul><li>Over 12 h there is a real chance of:</li><ul class='sub'><li>a USB hiccup, a libusb read error, or Windows power-managing the dongle.</li></ul><li>WAS: if sdr.read_samples() threw, the capture loop exited and the rest of the night was lost -- a single transient failure = no data until morning.</li><li class="good">NOW: reconnect.py (ReconnectingReader) wraps every read.</li><ul class='sub'><li class="good">On error: close -&gt; exponential backoff (1 s, capped at 30 s) -&gt; reopen -&gt; re-apply freq/gain -&gt; resume. Default: never give up.</li><li class="good">An in-progress event is discarded and the IQ ring cleared (sample-index continuity breaks across the gap); the noise-floor baseline is kept.</li><li class="good">Reconnects are counted and shown in the 5-minute heartbeat.</li></ul><li>Config: reconnect_enabled / _backoff_start_s / _backoff_max_s / _give_up_after.</li></ul></section><section class="slide"><span class="no">Slide 5 of 12</span><h2>Limitation 2: Snapshot rendering blocks capture  -- FIXED (v1.3/v1.4)</h2><ul><li>WAS: snapshots rendered SYNCHRONOUSLY inside the capture loop. matplotlib savefig takes ~150-300 ms per event -- and while rendering, no samples are read, so the RTL-SDR USB buffer can overflow and DROP samples. During a burst that cascades into continuous dropouts.</li><li class="good">NOW: snapshot.py SnapshotWorker renders on a BACKGROUND thread.</li><ul class='sub'><li class="good">The capture thread only extracts the IQ window and classifies it (cheap), then hands the job off -- submit is non-blocking.</li><li class="good">The queue is bounded by BYTES (v1.4): a job holds a whole event window, 4-25 MB, so a job-COUNT bound bounded nothing.</li></ul><li>Backpressure = the governor: over the cap, the SNAPSHOT is dropped and counted -- the EVENT is still classified and written to the CSV. The counts (the science) never degrade under load.</li></ul></section><section class="slide"><span class="no">Slide 6 of 12</span><h2>Limitation 3: Seattle air traffic -&gt; disk flood</h2><p class="sub">Near SeaTac, 104.3 forward-scatter catches many aircraft reflections; each currently saves a PNG.</p><div class="tablewrap"><table><thead><tr><th>Scenario</th><th>Events / 12 h</th><th>PNGs (~200 KB ea)</th><th>If raw IQ on (~12 MB ea)</th></tr></thead><tbody><tr><td>Quiet</td><td>~50</td><td>~10 MB</td><td>~0.6 GB</td></tr><tr><td>Busy (aircraft / E-skip)</td><td>~1,500</td><td>~300 MB</td><td>~18 GB</td></tr></tbody></table></div>
+<ul><li>Keep snapshot_save_raw_iq = False (it already is) -- raw IQ is the disk killer.</li><li>Even PNG-only, a busy night is a few hundred MB and a LOT of images to triage.</li><li class="good">NOW GOVERNED: snapshot_skip_aircraft skips exactly these, and the byte-bounded queue drops renders (never events) under burst. On the Pi, .npz is ~1-2 MB/event.</li></ul></section><section class="slide"><span class="no">Slide 7 of 12</span><h2>Limitation 4: Windows will try to interrupt you</h2><ul><li>System sleep / hibernation: kills capture -&gt; must be disabled.</li><li>USB selective suspend: can suspend the dongle -&gt; disable it.</li><li>Windows Update auto-restart: can reboot mid-run -&gt; pause updates / active hours.</li><li>Fine to leave on: display sleep, screensaver.</li><li>All handled in the pre-flight checklist (next-next slide).</li></ul></section><section class="slide"><span class="no">Slide 8 of 12</span><h2>Limitations 5 &amp; 6</h2><ul><li class="good">5. Thermal drift -- mostly a NON-issue here:</li><ul class='sub'><li>the tuner drifts as it warms, but we detect over the WHOLE +-90 kHz FM channel, so a few kHz of drift is irrelevant.</li><li>(It would matter for a narrowband CW beacon; it does not for us.)</li></ul><li>6. Analysis burden:</li><ul class='sub'><li>a busy night&#x27;s snapshots are dominated by aircraft.</li><li>The auto-classifier + per-class session report exist precisely to make triage manageable -- but review is still real work.</li></ul></ul></section><section class="slide"><span class="no">Slide 9 of 12</span><h2>Pre-flight checklist (for when you do it)</h2><ul><li>1. powercfg /change standby-timeout-ac 0  (no system sleep).</li><li>2. Disable USB selective suspend (dongle + USB Root Hubs, Power Mgmt tab).</li><li>3. Pause Windows Update for the run window.</li><li>4. Confirm free disk (budget ~1 GB to be safe).</li><li>5. Verify nothing else holds the dongle.</li><li>6. Launch with a log file:  python meteor_detector.py *&gt; run_YYYYMMDD.log 7. Ideally time it to a shower (Perseids Aug 12-13); rates rise toward dawn.</li><li>8. Spot-check after ~15 min that pings / CSV / snapshots are flowing, then leave it.</li></ul></section><section class="slide"><span class="no">Slide 10 of 12</span><h2>Robustness upgrades -- BUILT (v1.3 / v1.4)</h2><ul><li class="good">These are what make an overnight run trustworthy. All now in the code:</li><ul class='sub'><li class="good">Auto-reconnect: retry on USB/read error (close -&gt; backoff -&gt; reopen -&gt; resume). reconnect.py.   [limitation 1]</li><li class="good">Async snapshots: background worker + bounded queue, so rendering never stalls the reader. snapshot.py SnapshotWorker.   [limitation 2]</li><li class="good">Snapshot governor: skip &#x27;aircraft&#x27; events and/or drop renders over a BYTE cap -- bounds disk, CPU and memory; events still logged.   [limitation 3]</li><li class="good">Heartbeat: every 5 min the CLI prints uptime, pings, reconnects, RSS, and snapshots saved/dropped -- health confirmable at a glance.</li></ul><li class="warn">Verified HEADLESSLY (synthetic sources). A real-hardware overnight run is still the outstanding validation step.</li></ul></section><section class="slide"><span class="no">Slide 11 of 12</span><h2>When to run: meteor shower calendar</h2><p class="sub">Dates recur each year. Radio works day/night and through clouds -- see priorities below.</p><div class="tablewrap"><table><thead><tr><th>Shower</th><th>Peak</th><th>Activity</th><th>Note for your radio setup</th></tr></thead><tbody><tr><td>Quadrantids</td><td>Jan 3-4</td><td>High</td><td>Sharp ~6h peak; cloudy Seattle -&gt; radio wins</td></tr><tr><td>Lyrids</td><td>Apr 22-23</td><td>Modest</td><td>Minor</td></tr><tr><td>Eta Aquariids</td><td>May 5-6</td><td>Moderate</td><td>Pre-dawn radiant</td></tr><tr><td>June daytime (Arietids)</td><td>Jun 7-10</td><td>Strong (radio)</td><td>DAYTIME -&gt; radio ONLY; run in daylight</td></tr><tr><td>S.Delta Aq. / Capricornids</td><td>Jul 28-30</td><td>Modest</td><td>Good Perseids rehearsal</td></tr><tr><td>Perseids</td><td>Aug 12-13</td><td>High</td><td>Reliable; summer sporadic-E false pings</td></tr><tr><td>Orionids</td><td>Oct 21-22</td><td>Modest</td><td>Fast meteors</td></tr><tr><td>Leonids</td><td>Nov 17-18</td><td>Modest</td><td>Rare storm years</td></tr><tr><td>Geminids</td><td>Dec 13-14</td><td>Highest</td><td>Best annual; all-weather radio edge</td></tr><tr><td>Ursids</td><td>Dec 22-23</td><td>Low</td><td>Minor</td></tr></tbody></table></div>
+<ul><li class="good">Prioritize: Geminids (Dec) &amp; Quadrantids (Jan) -- radio beats clouded-out visual;</li><li class="good">Perseids (Aug); and June DAYTIME showers -- the &#x27;only radio can see this&#x27; moment.</li></ul></section><section class="slide"><span class="no">Slide 12 of 12</span><h2>Summary &amp; recommendation</h2><ul><li class="good">The code-side blockers are GONE: auto-reconnect (a glitch no longer ends the night) and async snapshots (bursts no longer drop samples) are BUILT, plus a governor that bounds disk/CPU/memory. A 10-12 h CLI run is ready to attempt.</li><li class="warn">What is left is OPERATIONAL, and it is on you, not the code:</li><ul class='sub'><li class="warn">Windows power/update pre-flight (sleep OFF, USB selective suspend OFF, Updates paused, ~1 GB free disk).</li><li>Log to a file, and spot-check at ~15 min that pings/CSV/snapshots flow.</li><li class="warn">Neither v1.3 nor v1.4 has yet run against real hardware overnight -- treat the first night as a shakedown as much as an observation.</li></ul><li>Keep snapshot_save_raw_iq=False; leave the snapshot governor on.</li><li>Best payoff: run it on a shower night (Perseids Aug 12-13) and compare pings-per-hour to the expected rise toward dawn.</li></ul></section>
+</div>
+<footer><div class="foot-in">
+  <span>Generated from Longrun_Planning.pptx by build_site.py</span>
+  <span><a href="https://github.com/jrb985/radio-meteor-project">source on GitHub</a> &middot; code v1.4</span>
+</div></footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  function cur() {
+    var s = root.getAttribute('data-theme');
+    if (s) return s;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function sync() { btn.textContent = cur() === 'dark' ? '\u2600 theme' : '\u263E theme'; }
+  btn.addEventListener('click', function () {
+    root.setAttribute('data-theme', cur() === 'dark' ? 'light' : 'dark');
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>
