@@ -36,7 +36,13 @@
 !/reconnect.py
 !/rtl_sdr_env.py
 !/memutil.py
+!/uptime.py
 !/render_snapshots.py
+
+# The analysis tools -- deploy/pi/report.sh runs both of these, so a clone
+# without them has a broken report job.
+!/session_report.py
+!/diurnal.py
 
 # tools/ also holds Windows binaries (Zadig, librtlsdr DLLs) -- publish only the
 # memory soak test.

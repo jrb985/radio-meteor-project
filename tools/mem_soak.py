@@ -89,9 +89,14 @@ def soak(profile: str | None, seconds: float, budget_mb: float,
          event_ms: float, gap_ms: float) -> int:
     cfg = get_config(profile)
     tmp = tempfile.mkdtemp(prefix="meteor_soak_")
+    # EVERY output path must be redirected into the temp dir. In particular the
+    # uptime log: a soak run must never append synthetic sessions to the real
+    # sessions.csv, or it would corrupt the observing exposure that diurnal.py
+    # divides by -- silently poisoning the science with test data.
     cfg = replace(cfg,
                   snapshot_dir=os.path.join(tmp, "snapshots"),
-                  log_csv=os.path.join(tmp, "events.csv"))
+                  log_csv=os.path.join(tmp, "events.csv"),
+                  uptime_log=os.path.join(tmp, "sessions.csv"))
 
     print(f"profile           : {profile or 'default'}")
     print(f"snapshot_mode     : {cfg.snapshot_mode}")

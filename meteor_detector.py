@@ -34,6 +34,7 @@ from snapshot import (IQRingBuffer, write_snapshot, extract_window,
                       SnapshotWorker, SnapshotJob)
 from classify import classify_with_config
 from reconnect import ReconnectingReader
+from uptime import UptimeLog
 
 
 @dataclass
@@ -146,6 +147,15 @@ class EventDetector:
                 )
         return None
 
+    @property
+    def warm(self) -> bool:
+        """True once warm-up is over and pings can actually be detected.
+
+        Warm-up is NOT observing time -- the detector is deliberately blind
+        during it -- so exposure must not start counting until this flips.
+        """
+        return self.baseline_db is not None and self._n > self._warmup_blocks
+
     def abort_event(self) -> None:
         """Discard any in-progress event (e.g. after a reconnect gap)."""
         self.in_event = False
@@ -255,10 +265,17 @@ def main(argv=None) -> int:
 
     signal.signal(signal.SIGINT, _stop)
 
+    # Observing-exposure log. Exposure excludes warm-up and reconnect gaps, so
+    # it is driven by the detector's `warm` flag and the reader's lost/restored
+    # callbacks -- never by wall-clock or by when events happened to be logged.
+    uptime = UptimeLog(cfg.uptime_log, cfg.uptime_beat_s, cfg.uptime_enabled)
+
     reader = ReconnectingReader(
         cfg, open_fn=lambda: make_sdr(cfg),
         notify=lambda kind, msg: print(f"  [{kind}] {msg}"),
-        should_stop=lambda: not running)
+        should_stop=lambda: not running,
+        on_lost=lambda: uptime.off("reconnect"),
+        on_restored=lambda: None)   # exposure resumes below, once detecting again
     try:
         reader.open()
     except Exception as e:  # noqa: BLE001
@@ -324,6 +341,13 @@ def main(argv=None) -> int:
                     )
             samples_seen += len(iq)
 
+            # Exposure clock. `on()` is idempotent, so this both starts the
+            # clock the moment warm-up ends and restarts it after a reconnect
+            # gap (the reader's on_lost stopped it). `beat()` self-throttles.
+            if detector.warm:
+                uptime.on("detecting")
+                uptime.beat()
+
             if time.time() - last_hb >= 300:  # periodic heartbeat
                 last_hb = time.time()
                 up = int(last_hb - start_t)
@@ -338,7 +362,11 @@ def main(argv=None) -> int:
         if worker is not None:
             worker.close()
         sink.close()
+        uptime.close("stop")
         print(f"\nStopped. {sink.count} pings logged to {cfg.log_csv}")
+        if cfg.uptime_enabled:
+            print(f"Observing exposure logged to {cfg.uptime_log} "
+                  f"(run: python diurnal.py)")
     return 0
 
 

@@ -32,6 +32,7 @@ from snapshot import (IQRingBuffer, write_snapshot, extract_window,
                       SnapshotWorker, SnapshotJob)
 from classify import classify_with_config
 from reconnect import ReconnectingReader
+from uptime import UptimeLog
 
 SampleSource = Callable[[int], np.ndarray]
 
@@ -125,11 +126,14 @@ class CaptureEngine:
 
     def _run(self) -> None:
         cfg = self.cfg
+        # Exposure log (v1.5): excludes warm-up and reconnect gaps. See uptime.py.
+        uptime = UptimeLog(cfg.uptime_log, cfg.uptime_beat_s, cfg.uptime_enabled)
         reader = ReconnectingReader(
             cfg, open_fn=self._open_device,
             notify=lambda kind, msg: self._emit(
                 type=("reconnect" if kind == "reconnect" else kind), text=msg),
-            should_stop=self._stop.is_set)
+            should_stop=self._stop.is_set,
+            on_lost=lambda: uptime.off("reconnect"))
         try:
             reader.open()
         except Exception as e:  # noqa: BLE001
@@ -185,6 +189,12 @@ class CaptureEngine:
                                    count=self.ping_count)
                 samples_seen += len(iq)
 
+                # Exposure clock: starts when warm-up ends, restarts after a
+                # reconnect gap (on_lost stopped it). Both calls are idempotent.
+                if self.detector.warm:
+                    uptime.on("detecting")
+                    uptime.beat()
+
                 nb = len(iq) // cfg.nfft
                 if nb:
                     frames = iq[:nb * cfg.nfft].reshape(nb, cfg.nfft) * self._win
@@ -200,6 +210,7 @@ class CaptureEngine:
             if worker is not None:
                 worker.close()
             sink.close()
+            uptime.close("stop")
             self._emit(type="stopped")
 
     def _open_device_retune(self, reader):

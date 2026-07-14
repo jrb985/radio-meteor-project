@@ -105,6 +105,15 @@ class Config:
     # Seconds of IQ retained by the ring (0 = derive from pre/post/max_ping).
     ring_span_s: float = 0.0
 
+    # --- Observing exposure log (v1.5) ------------------------------------
+    # Every rate is counts/EXPOSURE, so exposure must be MEASURED. The detector
+    # appends on/beat/off events here; diurnal.py integrates them. Without this,
+    # exposure has to be guessed from the event span -- which fabricates a
+    # textbook diurnal curve out of a night-only observing schedule. See uptime.py.
+    uptime_enabled: bool = True
+    uptime_log: str = "sessions.csv"
+    uptime_beat_s: float = 60.0                # crash costs at most this much
+
     # --- Auto-reconnect (v1.3) --------------------------------------------
     # Recover from USB/read errors instead of exiting -- essential for long
     # unattended runs (and the headless Pi service).

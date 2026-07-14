@@ -19,11 +19,19 @@ import numpy as np
 class ReconnectingReader:
     def __init__(self, cfg, open_fn: Callable[[], object],
                  notify: Optional[Callable[[str, str], None]] = None,
-                 should_stop: Optional[Callable[[], bool]] = None) -> None:
+                 should_stop: Optional[Callable[[], bool]] = None,
+                 on_lost: Optional[Callable[[], None]] = None,
+                 on_restored: Optional[Callable[[], None]] = None) -> None:
         self.cfg = cfg
         self.open_fn = open_fn
         self.notify = notify or (lambda kind, msg: None)
         self.should_stop = should_stop or (lambda: False)
+        # Fired at the MOMENT the device is lost and the moment it is back, so a
+        # caller (uptime.py) can exclude the gap from observing exposure. The
+        # read() call blocks across the whole backoff, so the caller cannot time
+        # the gap itself -- only the reader knows when it actually began.
+        self.on_lost = on_lost or (lambda: None)
+        self.on_restored = on_restored or (lambda: None)
         self.sdr = None
         self.reconnects = 0          # increments on each successful reopen
 
@@ -44,6 +52,7 @@ class ReconnectingReader:
                     return None      # stopped or gave up
 
     def _reconnect(self, err) -> bool:
+        self.on_lost()               # exposure stops HERE, not when read() returns
         try:
             if self.sdr is not None:
                 self.sdr.close()
@@ -69,6 +78,7 @@ class ReconnectingReader:
                 self.sdr = self.open_fn()
                 self.reconnects += 1
                 self.notify("reconnect", f"reconnected (total {self.reconnects})")
+                self.on_restored()
                 return True
             except Exception as e2:  # noqa: BLE001
                 err = e2

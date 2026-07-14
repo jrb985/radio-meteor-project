@@ -50,6 +50,8 @@ Target reference: 104.3 MHz  (locally VACANT in Seattle; carries KAWO Boise,
   dsp.py                v1.4 chunked float32 spectrogram + band_stats: keeps the
                         per-event FFT transient at a few MB instead of ~200 MB.
   memutil.py            v1.4 dependency-free RSS reporting (heartbeat, soak test).
+  uptime.py             v1.5 observing-EXPOSURE log (sessions.csv). Every rate
+                        divides by this; without it the diurnal curve is a lie.
   render_snapshots.py   v1.4 render the Pi's .npz captures to PNGs on your PC.
   tools/mem_soak.py     v1.4 headless memory soak: floods the pipeline, reports
                         peak RSS. Run with --profile pi to check the 1 GB budget.
@@ -251,6 +253,46 @@ Target reference: 104.3 MHz  (locally VACANT in Seattle; carries KAWO Boise,
   New: dsp.py, memutil.py, render_snapshots.py, tools/mem_soak.py.
     python tools/mem_soak.py --profile pi     # floods the pipeline, prints RSS
     python render_snapshots.py --dir <dir>    # .npz -> .png on your PC
+
+-------------------------------------------------------------------------------
+ v1.5  --  Measured observing exposure  (BUILT)
+-------------------------------------------------------------------------------
+  Every rate in this project is counts / EXPOSURE, so exposure must be MEASURED,
+  not guessed. Up to v1.4, diurnal.py inferred it from the span of logged events
+  ("the receiver was on whenever anything was logged").
+
+  THE TRAP that removes: observe only 22:00-06:00 for a week, and that span
+  covers all the daytime hours you never watched. Those hours then look
+  observed-but-empty, their rate collapses to ~0, and you get a textbook diurnal
+  curve (peak ~06h, trough ~18h) manufactured entirely by your own observing
+  schedule. It is indistinguishable from success -- the worst kind of bug.
+
+  * uptime.py (NEW): UptimeLog writes `sessions.csv`, append-only, one row per
+    event: on / beat / off. Exposure EXCLUDES warm-up (the detector is blind)
+    and USB reconnect gaps (it is not listening). Beats every 60 s mean a hard
+    crash under-counts by at most 60 s instead of losing the session -- and it
+    never counts the dead hours as observed. load_intervals() reconstructs the
+    closed intervals; exposure_by_local_hour() integrates them across hour
+    boundaries.
+  * reconnect.py gained on_lost/on_restored callbacks -- read() blocks across the
+    whole backoff, so only the reader knows when the gap actually began.
+  * EventDetector.warm tells the loop when detection (hence exposure) starts.
+  * diurnal.py now divides by the measured exposure. With no sessions.csv it
+    still runs, but prints a loud warning AND stamps "EXPOSURE GUESSED" across
+    the PNG -- the plot travels on its own, so its provenance must travel with it.
+  * Wired into both meteor_detector.py (CLI) and capture_engine.py (GUI/Pi).
+    New config: uptime_enabled / uptime_log / uptime_beat_s.
+
+  Verified headlessly: interval reconstruction across clean stop, crash, a
+  reconnect gap, and crash-then-restart; hour-straddling integration; and the
+  artifact itself -- given a FLAT synthetic meteor rate, the old method invents
+  the diurnal curve while the new one recovers flat and leaves unobserved hours
+  BLANK rather than fake-zero.
+
+  OBSERVING NOTE: run 24/7, not just at night. Continuous coverage is what makes
+  the daytime bins real, and the daytime is where the apex minimum (and the
+  radio-only daytime showers) live. Plot `--class aircraft` as a control: air
+  traffic has a human daily rhythm, nothing like the meteor one.
 
 ===============================================================================
  KNOWN CAVEATS
