@@ -121,9 +121,17 @@ have produced on the Pi.
 
 ## Troubleshooting
 
+**The Pi can't see the dongle? -> [TROUBLESHOOTING.md](TROUBLESHOOTING.md).** It is
+the most common wall on a first deploy, and it has a proper diagnostic ladder
+(`lsusb` -> `lsmod` -> `dmesg` -> `rtl_test` -> `vcgencmd`). Read it before
+trying fixes: more than half the time this is *electrical* (power/cable/hub), not
+a driver problem, and no amount of `modprobe` will help. Note the command is
+`rtl_test -t`, **not** `rtl_sdr -t`.
+
 - `rtl_test -t` -> confirms the dongle is seen and the DVB driver isn't holding
   it. If it says "usb_claim_interface error", the DVB module is still loaded:
-  `sudo modprobe -r dvb_usb_rtl28xxu`.
+  `sudo modprobe -r dvb_usb_rtl28xxu` **and reboot** (the blacklist only takes
+  effect at boot).
 - `import rtlsdr` fails with `AttributeError: function 'rtlsdr_set_dithering' not
   found` -> run `python deploy/pi/patch_pyrtlsdr.py` (install.sh already does).
 - Undervoltage / random USB errors -> better PSU or powered hub;

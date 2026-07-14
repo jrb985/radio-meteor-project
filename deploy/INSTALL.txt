@@ -109,8 +109,24 @@ folder (Zadig/DLLs) on the Pi.
    cd ~/radio_metor_tracker
    .venv/bin/python check_device.py    # opens device, captures IQ, prints stats
 
- If rtl_test says "usb_claim_interface error", the DVB driver is still loaded:
-   sudo modprobe -r dvb_usb_rtl28xxu
+ NOTE: the command is  rtl_test -t  -- NOT  rtl_sdr -t  (rtl_sdr is the raw
+ capture tool and expects a filename; it will just print usage).
+
+ *** DONGLE NOT DETECTED?  See deploy/pi/TROUBLESHOOTING.md ***
+ It has the full diagnostic ladder. Run these five and read the answers there:
+   lsusb                            # 1. does USB see it at all?
+   lsmod | grep -E 'dvb|rtl|r820'   # 2. is the DVB TV driver holding it?
+   sudo dmesg | tail -30            # 3. what did the kernel say on plug-in?
+   which rtl_test && rtl_test -t    # 4. is the tool installed; what does it say?
+   vcgencmd get_throttled           # 5. is the power clean?  (want 0x0)
+
+ The two most common causes:
+   - lsusb does NOT list it -> NOT a driver problem. The dongle never enumerated:
+     power/cable/port. A POWERED USB HUB fixes this more often than anything else.
+   - lsusb lists it but lsmod shows dvb_usb_rtl28xxu -> the DVB TV driver has it:
+     sudo modprobe -r dvb_usb_rtl28xxu  &&  sudo reboot
+     (the blacklist install.sh writes only takes effect at boot)
+
  If check_device.py fails with a missing-function AttributeError:
    .venv/bin/python deploy/pi/patch_pyrtlsdr.py
 
