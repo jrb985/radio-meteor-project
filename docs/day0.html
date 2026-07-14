@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Printable pre-flight checklist for setting up the radio meteor station before an observing run.">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>📡</text></svg>">
+<title>Day 0 — Radio Meteor Station Pre-Flight</title>
+<style>
+  :root {
+    --ink:        #151A22;
+    --ink-soft:   #4A5462;
+    --ink-faint:  #7C8697;
+    --paper:      #FFFFFF;
+    --panel:      #F4F6F9;
+    --rule:       #D3D8E0;
+    --rule-hard:  #A9B2BF;
+    --accent:     #2F5FD0;
+    --warn:       #C2410C;
+    --go:         #1F7A3D;
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:#E6EAF1; --ink-soft:#A3ADBC; --ink-faint:#6F7988;
+      --paper:#101419; --panel:#181E26; --rule:#2A323D; --rule-hard:#3D4756;
+      --accent:#7FA0FF; --warn:#F5945C; --go:#5FC98A;
+    }
+  }
+  :root[data-theme="light"] {
+    --ink:#151A22; --ink-soft:#4A5462; --ink-faint:#7C8697;
+    --paper:#FFFFFF; --panel:#F4F6F9; --rule:#D3D8E0; --rule-hard:#A9B2BF;
+    --accent:#2F5FD0; --warn:#C2410C; --go:#1F7A3D;
+  }
+  :root[data-theme="dark"] {
+    --ink:#E6EAF1; --ink-soft:#A3ADBC; --ink-faint:#6F7988;
+    --paper:#101419; --panel:#181E26; --rule:#2A323D; --rule-hard:#3D4756;
+    --accent:#7FA0FF; --warn:#F5945C; --go:#5FC98A;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--panel);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+    margin: 0;
+    padding: 28px 18px 64px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sheet {
+    background: var(--paper);
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 44px 52px 52px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+  }
+
+  /* ---- masthead ---------------------------------------------------- */
+  .masthead {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 20px; flex-wrap: wrap;
+    border-bottom: 3px solid var(--ink); padding-bottom: 12px;
+  }
+  .eyebrow {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 6px;
+  }
+  h1 {
+    font-family: var(--serif); font-weight: 600; font-size: 34px;
+    line-height: 1.05; margin: 0; text-wrap: balance;
+  }
+  /* Georgia sets old-style figures, so a serif "0" drops to x-height and the
+     title reads as "Day o". Set the numeral in the sans face to keep it a zero. */
+  h1 .fig { font-family: var(--sans); font-weight: 700; font-size: .92em; }
+  .sub { font-size: 14px; color: var(--ink-soft); margin: 7px 0 0; max-width: 58ch; }
+  .stamp {
+    font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint);
+    text-align: right; line-height: 1.8; white-space: nowrap;
+  }
+
+  /* ---- the one rule that outranks the checklist --------------------- */
+  .prime {
+    border: 2px solid var(--warn); border-left-width: 7px;
+    padding: 14px 18px; margin: 26px 0 0;
+    display: flex; gap: 14px; align-items: baseline;
+  }
+  .prime .tag {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--warn); font-weight: 700; white-space: nowrap;
+  }
+  .prime p { margin: 0; font-size: 14.5px; }
+  .prime b { color: var(--warn); }
+
+  /* ---- sections ------------------------------------------------------ */
+  section { margin-top: 34px; break-inside: avoid; }
+  .head { display: flex; align-items: baseline; gap: 11px; border-bottom: 1px solid var(--rule-hard); padding-bottom: 5px; }
+  .num {
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    color: var(--paper); background: var(--ink);
+    padding: 2px 7px; border-radius: 2px;
+  }
+  h2 { font-family: var(--serif); font-size: 20px; font-weight: 600; margin: 0; flex: 1; }
+  .clock { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
+  .note { font-size: 13.5px; color: var(--ink-soft); margin: 9px 0 0; }
+
+  /* ---- checklist items ----------------------------------------------- */
+  ul.check { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  ul.check li { display: flex; gap: 11px; align-items: flex-start; font-size: 14.5px; break-inside: avoid; }
+  ul.check li::before {
+    content: ""; flex: none; width: 13px; height: 13px; margin-top: 4px;
+    border: 1.5px solid var(--rule-hard); border-radius: 2px;
+  }
+  ul.check .txt { flex: 1; }
+  ul.check .why { display: block; font-size: 12.5px; color: var(--ink-faint); margin-top: 2px; }
+
+  code {
+    font-family: var(--mono); font-size: 12.5px;
+    background: var(--panel); border: 1px solid var(--rule);
+    padding: 1px 5px; border-radius: 2px; white-space: nowrap;
+  }
+  .cmd {
+    font-family: var(--mono); font-size: 12.5px; background: var(--panel);
+    border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+    padding: 9px 12px; margin: 9px 0 0; overflow-x: auto; white-space: pre;
+  }
+  .expect { color: var(--go); font-weight: 600; }
+  .stop   { color: var(--warn); font-weight: 600; }
+
+  /* ---- the log: things you WRITE ------------------------------------- */
+  .log { border: 1px solid var(--rule-hard); background: var(--panel); padding: 18px 20px; margin-top: 12px; }
+  .log h3 {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--ink-soft); margin: 0 0 13px; font-weight: 700;
+  }
+  .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 13px 26px; }
+  @media (max-width: 620px) { .fields { grid-template-columns: 1fr; } }
+  .f { display: flex; flex-direction: column; gap: 3px; }
+  .f span {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  .f .blank { border-bottom: 1px solid var(--rule-hard); height: 21px; }
+  .f .blank.pre {
+    font-family: var(--mono); font-size: 13px; color: var(--ink-soft);
+    display: flex; align-items: flex-end; padding-bottom: 1px;
+  }
+  .f.wide { grid-column: 1 / -1; }
+
+  table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-soft); border-bottom: 1.5px solid var(--rule-hard);
+  }
+  td:first-child { white-space: nowrap; font-family: var(--mono); font-size: 12.5px; }
+
+  .gate { border: 2px solid var(--ink); padding: 16px 20px; margin-top: 12px; }
+  .gate h3 { font-family: var(--serif); font-size: 16px; margin: 0 0 9px; }
+  .gate ul { margin: 0; padding-left: 19px; font-size: 14px; display: flex; flex-direction: column; gap: 5px; }
+
+  footer {
+    margin-top: 38px; padding-top: 12px; border-top: 1px solid var(--rule);
+    font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint);
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+
+  /* ---- screen-only controls ------------------------------------------ */
+  .bar { max-width: 800px; margin: 0 auto 16px; display: flex; gap: 8px; justify-content: flex-end; }
+  .bar button {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em;
+    padding: 7px 13px; border: 1px solid var(--rule-hard); border-radius: 999px;
+    background: var(--paper); color: var(--ink-soft); cursor: pointer;
+  }
+  .bar button:hover { color: var(--accent); border-color: var(--accent); }
+  .bar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---- PRINT: this is the artifact's real target ---------------------- */
+  /* PRINT. Paper is the real target, so this is not a de-styled screen view --
+     it is its own tighter layout. Everything is re-spaced to land the whole
+     card on two sheets you can pin next to the radio. */
+  @media print {
+    @page { size: letter portrait; margin: 12mm 13mm; }
+    body { background:#fff; color:#000; padding:0; font-size:9.6pt; line-height:1.3; }
+    .sheet { border:0; border-radius:0; padding:0; max-width:none; }
+    .bar { display:none; }
+
+    .masthead { padding-bottom:7px; border-bottom-width:2px; }
+    h1 { font-size:19pt; }
+    .sub { font-size:9pt; margin-top:4px; }
+    .eyebrow { font-size:8pt; margin-bottom:3px; }
+    .stamp { font-size:8.5pt; line-height:1.6; }
+
+    .prime { padding:7px 11px; margin-top:12px; border-width:1.5px; border-left-width:5px; gap:10px; }
+    .prime p { font-size:9.2pt; }
+
+    section { margin-top:15px; }
+    .head { padding-bottom:3px; }
+    h2 { font-size:12pt; }
+    .num { font-size:9pt; padding:1px 5px; background:#000 !important; color:#fff !important;
+           -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .clock { font-size:8pt; }
+    .note { font-size:8.8pt; margin-top:5px; }
+
+    ul.check { gap:5px; margin-top:7px; }
+    ul.check li { font-size:9.4pt; gap:8px; }
+    ul.check li::before { width:11px; height:11px; margin-top:3px; }
+    .why { font-size:8.2pt; margin-top:1px; }
+
+    .cmd { font-size:8.6pt; padding:5px 8px; margin-top:4px; border-left-color:#000;
+           background:#F1F2F4 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    code, td:first-child { font-size:8.6pt; }
+
+    .log { background:#fff; padding:10px 13px; margin-top:8px; }
+    .log h3 { font-size:8.5pt; margin-bottom:8px; }
+    .fields { gap:8px 22px; }
+    .f span { font-size:7.6pt; }
+    .f .blank { height:16px; }
+    .f .blank.pre { font-size:9pt; }
+
+    table { margin-top:7px; font-size:9pt; }
+    th, td { padding:4px 8px; }
+    th { font-size:7.6pt; }
+
+    .gate { padding:9px 13px; margin-top:8px; border-width:1.5px; }
+    .gate h3 { font-size:11pt; margin-bottom:6px; }
+    .gate ul { font-size:9pt; gap:3px; }
+
+    /* Keep colour meaning in greyscale: weight and border carry it, not hue. */
+    .prime .tag, .prime b, .expect, .stop { color:#000; }
+    .expect, .stop { font-weight:700; }
+
+    /* No forced breaks -- sections are atomic, so the page falls where it falls
+       and the card stays as short as it honestly can. */
+    section, .log, .gate, table, ul.check li { break-inside: avoid; }
+    footer { margin-top:16px; padding-top:8px; }
+  }
+</style>
+</head>
+<body>
+
+
+<div class="bar">
+  <button id="print" type="button">Print</button>
+  <button id="theme" type="button">Theme</button>
+</div>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">Radio Meteor Project · Pre-Flight</p>
+      <h1>Day <span class="fig">0</span> — Station Setup</h1>
+      <p class="sub">Everything that must be true <em>before</em> the week-one run starts.
+        Work top to bottom; the order is load-bearing.</p>
+    </div>
+    <div class="stamp">
+      DATE ______________<br>
+      OPERATOR __________<br>
+      104.300 MHz · Seattle
+    </div>
+  </header>
+
+  <div class="prime">
+    <span class="tag">Prime<br>directive</span>
+    <p>Once the run begins, <b>change nothing</b> — not the antenna, its aim, the gain,
+      the threshold, or the frequency. Every rate you record is only meaningful
+      <em>relative to a fixed setup</em>. Touching any of it mid-week doesn't degrade
+      the data, it <b>resets the baseline and restarts the clock.</b> Today is the last
+      day you're allowed to fiddle.</p>
+  </div>
+
+  <!-- 1 -->
+  <section>
+    <div class="head">
+      <span class="num">1</span>
+      <h2>Antenna — get it outside</h2>
+      <span class="clock">~1–2 h</span>
+    </div>
+    <p class="note">The single biggest lever you have. Roughly 10–20 dB for $0–15 — worth more
+      than every line of code in this project. Do it now, or accept a weak week.</p>
+    <ul class="check">
+      <li><span class="txt">Antenna mounted <b>outdoors</b>, as high and as clear of the house as you can manage.
+        <span class="why">Indoors costs you more signal than any antenna upgrade can win back.</span></span></li>
+      <li><span class="txt">Horizontal dipole, cut for 104.3 MHz — each leg ≈ <b>27 in / 68 cm</b>.
+        <span class="why">Half-wave dipole: 143 / f(MHz) = 1.37 m total, split into two legs.</span></span></li>
+      <li><span class="txt">Broadside of the dipole aimed <b>southeast, toward Boise</b> (KAWO, ~650 km).
+        <span class="why">A dipole is deaf off its ends — point those away from the transmitter.</span></span></li>
+      <li><span class="txt">Coax run is as short as practical; connectors dry and snug; nothing swinging in wind.
+        <span class="why">A moving antenna modulates the signal and fakes pings.</span></span></li>
+      <li><span class="txt">Photograph the installation and note the aim. <span class="why">You will need to reproduce this exactly after any future change.</span></span></li>
+    </ul>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <div class="head">
+      <span class="num">2</span>
+      <h2>Verify the chain</h2>
+      <span class="clock">~30 min</span>
+    </div>
+    <p class="note">Prove signal reaches Python before you trust anything downstream.</p>
+    <ul class="check">
+      <li><span class="txt">Dongle opens, IQ flows, tuner reports sane values.
+        <div class="cmd">python check_device.py</div></span></li>
+      <li><span class="txt">104.3 MHz is <b>still locally vacant</b> — no local station has appeared.
+        <div class="cmd">python fm_vacancy.py</div>
+        <span class="why"><span class="stop">Stop if 104.3 is now occupied.</span> Pick another vacant channel that still carries a distant station, and update <code>reference_freq_hz</code>.</span></span></li>
+      <li><span class="txt">Ten-minute capture: the <b>noise floor is flat</b>.
+        <div class="cmd">python monitor.py 600</div>
+        <span class="why">Open <code>monitor_power.png</code>. <span class="expect">Want: a flat line.</span> <span class="stop">A wandering floor means the baseline is chasing something</span> — find it now, or every ping this week is junk.</span></span></li>
+      <li><span class="txt"><em>Optional:</em> measure the crystal error and set <code>freq_correction_ppm</code>.
+        <div class="cmd">rtl_test -p</div>
+        <span class="why">Not critical — detection is wideband (±90 kHz), so drift doesn't bite here.</span></span></li>
+    </ul>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <div class="head">
+      <span class="num">3</span>
+      <h2>Freeze and record the configuration</h2>
+      <span class="clock">~10 min</span>
+    </div>
+    <p class="note">This block <em>is</em> the scientific record. Without it, a month from now
+      you cannot say what your numbers meant. Fill it in by hand, and don't change a value after today.</p>
+
+    <div class="log">
+      <h3>Observing log — baseline configuration</h3>
+      <div class="fields">
+        <div class="f"><span>Reference freq (Hz)</span><div class="blank pre">104_300_000</div></div>
+        <div class="f"><span>Gain (dB) — FIXED, never auto</span><div class="blank pre">40.2</div></div>
+        <div class="f"><span>SNR threshold (dB)</span><div class="blank pre">4.0</div></div>
+        <div class="f"><span>Sample rate</span><div class="blank pre">1.024 Msps</div></div>
+        <div class="f"><span>Antenna type</span><div class="blank"></div></div>
+        <div class="f"><span>Height / location</span><div class="blank"></div></div>
+        <div class="f"><span>Aim (compass bearing)</span><div class="blank"></div></div>
+        <div class="f"><span>Coax type / length</span><div class="blank"></div></div>
+        <div class="f"><span>Noise floor (dB, from monitor.py)</span><div class="blank"></div></div>
+        <div class="f"><span>Host (Pi 3B+ / Windows)</span><div class="blank"></div></div>
+        <div class="f wide"><span>Local RF environment — anything nearby that transmits, and anything you expect to interfere</span><div class="blank"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="brk">
+    <div class="head">
+      <span class="num">4</span>
+      <h2>Prepare the machine</h2>
+      <span class="clock">~20 min</span>
+    </div>
+
+    <p class="note"><b>On the Raspberry Pi</b> — the intended host. The service already runs the
+      low-memory profile (<code>METEOR_PROFILE=pi</code>, ~100 MB RSS).</p>
+    <ul class="check">
+      <li><span class="txt">Installed, service enabled, starts on boot.
+        <div class="cmd">bash deploy/pi/install.sh
+sudo systemctl enable --now meteor-tracker</div></span></li>
+      <li><span class="txt">Power is clean — <span class="expect">want <code>0x0</code></span>.
+        <div class="cmd">vcgencmd get_throttled</div>
+        <span class="why">Anything else = undervoltage. Fix the PSU before the run; weak power causes USB read errors.</span></span></li>
+      <li><span class="txt">Free disk ≥ 2 GB. <code>df -h</code>
+        <span class="why">Snapshots are ~1–2 MB each as <code>.npz</code>; a busy week accumulates.</span></span></li>
+    </ul>
+
+    <p class="note" style="margin-top:18px;"><b>On Windows</b>, if you're running there instead —
+      the OS is actively trying to interrupt you.</p>
+    <ul class="check">
+      <li><span class="txt">System sleep <b>and</b> hibernation disabled.</span></li>
+      <li><span class="txt">USB selective suspend disabled. <span class="why">It will power-manage the dongle out from under you.</span></span></li>
+      <li><span class="txt">Windows Update paused for the week. <span class="why">A restart at 03:00 ends the run.</span></span></li>
+      <li><span class="txt">≥ 1 GB free disk (PNG snapshots are far larger than the Pi's <code>.npz</code>).</span></li>
+    </ul>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <div class="head">
+      <span class="num">5</span>
+      <h2>Shakedown night — this is not data</h2>
+      <span class="clock">1 night</span>
+    </div>
+    <p class="note">The auto-reconnect and low-memory code has <b>never faced real hardware overnight.</b>
+      Find out over one night, not over seven.</p>
+    <ul class="check">
+      <li><span class="txt">Start it and leave it alone.
+        <div class="cmd">sudo systemctl start meteor-tracker
+journalctl -u meteor-tracker -f      # watch the 5-min heartbeat</div></span></li>
+      <li><span class="txt">Confirm within 15 minutes that pings, CSV rows, and snapshots are all flowing — then walk away.</span></li>
+    </ul>
+
+    <div class="gate">
+      <h3>Morning go / no-go</h3>
+      <ul>
+        <li><b>Survived the night?</b> Process still up, no gap in the heartbeat.</li>
+        <li><b>Reconnects:</b> a few are fine and prove the recovery works. Dozens means a power or USB problem — fix it.</li>
+        <li><b>Memory flat?</b> RSS steady near ~100 MB. <span class="stop">Steadily climbing = a leak; stop and report it.</span></li>
+        <li><b>Snapshots dropped:</b> a burst is fine (events are still logged). Constant dropping means the queue never drains.</li>
+        <li><b>Disk:</b> extrapolate one night × 7. Will it fit?</li>
+        <li><b><code>sessions.csv</code> exists</b> and its exposure roughly matches the hours you actually ran.</li>
+      </ul>
+    </div>
+    <p class="note"><span class="expect">All green → start the week.</span>
+      <span class="stop">Anything red → fix it, then re-run the shakedown.</span> A clean night of nothing beats a week of garbage.</p>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <div class="head">
+      <span class="num">6</span>
+      <h2>Rules for the week ahead</h2>
+      <span class="clock">Days 1–7</span>
+    </div>
+    <table>
+      <thead><tr><th>Rule</th><th>Why it exists</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Run 24/7</td>
+          <td>Not just at night. Rate = counts ÷ exposure, and you need <em>daytime</em> coverage for the curve to mean anything. Daytime is also where the apex minimum and the radio-only daytime showers live.</td>
+        </tr>
+        <tr>
+          <td>Touch nothing</td>
+          <td>Any change to antenna, gain, threshold, or frequency starts a new baseline — and the week over.</td>
+        </tr>
+        <tr>
+          <td>5 min each morning</td>
+          <td><code>bash deploy/pi/report.sh</code> and <code>df -h</code>. Log anything unusual: storms, power blips, an E-skip opening.</td>
+        </tr>
+        <tr>
+          <td>Plot the control</td>
+          <td>On Day 9: <code>python diurnal.py --class aircraft</code>. Aircraft follow a <em>human</em> daily rhythm. If your meteor curve tracks the aircraft curve, the classifier is leaking and you're plotting SeaTac.</td>
+        </tr>
+        <tr>
+          <td>Distrust a perfect curve</td>
+          <td>If <code>diurnal.py</code> ever stamps <b>"EXPOSURE GUESSED"</b> on the plot, the exposure log is missing and the curve may be an artifact of your own schedule. Do not submit it.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <span>Success on Day 9 is a <em>validated instrument</em>, not a discovery.</span>
+    <span>Perseids: Aug 12–13</span>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    document.getElementById('print').addEventListener('click', function () { window.print(); });
+    document.getElementById('theme').addEventListener('click', function () {
+      var cur = root.getAttribute('data-theme');
+      if (!cur) {
+        cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
+
+</body>
+</html>

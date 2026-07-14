@@ -19,9 +19,13 @@
 !/README.md
 !/README.txt
 
-# The generated GitHub Pages site: index + a page per deck, the .pptx downloads
-# under docs/decks/, images under docs/assets/.
+# The generated GitHub Pages site: index + a page per deck, the Day 0 checklist,
+# the .pptx downloads under docs/decks/, images under docs/assets/.
 !/docs/
+
+# Body-only source for the Day 0 checklist; build_site.py wraps it into
+# docs/day0.html. Kept in the repo so the printable card has a real source.
+!/day0_checklist.src.html
 
 # The Pi deployment layer: installer, systemd unit, pyrtlsdr patch, status page.
 !/deploy/
