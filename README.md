@@ -28,8 +28,11 @@ snapshot.py           IQ ring buffer + snapshot writers + background worker
 dsp.py                Chunked, low-memory spectrogram + classifier reductions
 classify.py           Heuristic meteor / aircraft / interference triage
 reconnect.py          Survives USB read errors instead of ending the run
+uptime.py             The observing-exposure log — every rate divides by this
 memutil.py            Dependency-free RSS reporting
 render_snapshots.py   Turn the Pi's .npz captures into PNGs (run on a PC)
+session_report.py     Pings-per-hour for one session
+diurnal.py            Meteor rate vs local hour, normalized by real exposure
 tools/mem_soak.py     Flood the pipeline headlessly, report peak memory
 deploy/pi/            Installer, systemd unit, status page, pyrtlsdr patch
 deploy/INSTALL.txt    Step-by-step Pi deployment walkthrough
@@ -83,6 +86,40 @@ The `pi` profile (`METEOR_PROFILE=pi`, set by the systemd unit) fixes it:
 Under pressure the **snapshot** is dropped, never the **event** — every ping is
 still classified and written to the CSV, so the counts (the actual science) never
 degrade.
+
+## Measuring exposure (and one trap worth knowing)
+
+Every rate here is **counts ÷ exposure**, so exposure has to be *measured*. The
+detector appends an observing log (`sessions.csv`) recording when it was actually
+detecting — excluding warm-up and USB reconnect gaps — and `diurnal.py` divides by
+that.
+
+This is not bookkeeping pedantry. The obvious shortcut is to infer exposure from
+the span of logged events ("the receiver was on whenever anything was logged"),
+and it fails in a genuinely dangerous way:
+
+> Observe only 22:00–06:00 for a week. That span also covers every daytime hour
+> you never watched, so those hours look *observed-but-empty*. Their rate collapses
+> to zero, and out comes a textbook diurnal curve — peak at ~06h, trough at ~18h —
+> **manufactured entirely by your own sleep schedule.**
+
+It looks exactly like success, which is what makes it worth engineering against.
+Fed a deliberately **flat** synthetic meteor rate, the naive method invents the
+curve; the logged-exposure method recovers flat and leaves unobserved hours *blank*
+rather than fake-zero.
+
+Two consequences for observing:
+
+- **Run continuously, not just at night.** Daytime coverage is what makes the curve
+  mean anything — and daytime is where the apex minimum and the radio-only daytime
+  showers live.
+- **Plot the control:** `python diurnal.py --class aircraft`. Aircraft follow a
+  *human* daily rhythm, nothing like a meteor one. If your meteor curve tracks the
+  aircraft curve, the classifier is leaking and you're plotting air traffic.
+
+If `sessions.csv` is missing, `diurnal.py` still runs — but stamps
+**"EXPOSURE GUESSED"** across the PNG, because the plot travels on its own and its
+provenance has to travel with it.
 
 ## Status — read this
 
