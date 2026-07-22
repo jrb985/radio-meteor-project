@@ -10,7 +10,9 @@ import csv
 import glob
 import html
 import os
+import subprocess
 import sys
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote
 
@@ -35,37 +37,154 @@ def newest(pattern):
     return max(fs, key=os.path.getmtime) if fs else None
 
 
-def memory() -> str:
-    """Free RAM and what the detector is using -- the number that matters on a
-    1 GB Pi. Reads /proc directly; psutil is not a dependency."""
+def _detector_rss() -> int | None:
+    """RSS (bytes) of the running meteor_detector.py process, or None if not up."""
+    for statm in glob.glob("/proc/[0-9]*/statm"):
+        try:
+            with open(os.path.join(os.path.dirname(statm), "cmdline"), "rb") as f:
+                if "meteor_detector.py" not in f.read().decode("utf-8", "replace"):
+                    continue
+            with open(statm) as f:
+                return int(f.read().split()[1]) * os.sysconf("SC_PAGE_SIZE")
+        except (OSError, IndexError, ValueError):
+            continue
+    return None
+
+
+def _reconnects() -> int | None:
+    """How many times reconnect.py recovered a USB/read glitch this log -- the best
+    software proxy for dongle health (RTL-SDR exposes no temperature sensor). Scans
+    only the tail of meteor.log so it stays cheap as the log grows."""
+    path = os.path.join(PROJ, "meteor.log")
+    try:
+        size = os.path.getsize(path)
+        with open(path, "rb") as f:
+            if size > 262144:
+                f.seek(-262144, os.SEEK_END)
+            tail = f.read().decode("utf-8", "replace")
+        return tail.count("[reconnect]")
+    except OSError:
+        return None
+
+
+def health():
+    """Equipment/host health for a headless Pi, as a list of (label, value, level)
+    with level in {'ok','warn','bad',''} driving color. Every probe is best-effort:
+    a missing sensor yields no row rather than an error, so this also degrades
+    cleanly when run off-Pi (e.g. rendering a test page on a PC)."""
+    rows = []
+
+    # SoC/CPU temperature. A bare 3B+ thermally throttles (~80-85 C) under sustained
+    # DSP load; this is the host-side temperature that actually exists to read.
+    try:
+        with open("/sys/class/thermal/thermal_zone0/temp") as f:
+            c = int(f.read().strip()) / 1000.0
+        lvl = "ok" if c < 70 else "warn" if c < 80 else "bad"
+        rows.append(("CPU temp", f"{c:.1f} °C", lvl))
+    except (OSError, ValueError):
+        pass
+
+    # Throttle / under-voltage flags. THE dongle-relevant signal: a marginal 5 V
+    # supply trips under-voltage here first, then shows up as USB read errors.
+    try:
+        out = subprocess.run(["vcgencmd", "get_throttled"], capture_output=True,
+                             text=True, timeout=5).stdout.strip()
+        val = int(out.split("=")[1], 16)                    # throttled=0x0
+        flags = {0: "under-voltage now", 1: "ARM-freq capped now", 2: "throttled now",
+                 16: "under-voltage since boot", 17: "freq-capped since boot",
+                 18: "throttled since boot"}
+        if val == 0:
+            rows.append(("Power/throttle", "healthy (0x0)", "ok"))
+        else:
+            active = [m for bit, m in flags.items() if val & (1 << bit)]
+            now = any(val & (1 << b) for b in (0, 1, 2))
+            rows.append(("Power/throttle", f"0x{val:x}: " + ", ".join(active),
+                         "bad" if now else "warn"))
+    except (OSError, ValueError, IndexError, subprocess.SubprocessError):
+        pass
+
+    # Load average vs cores -- is the detector keeping up with the sample stream?
+    try:
+        with open("/proc/loadavg") as f:
+            la1, la5, la15 = (float(x) for x in f.read().split()[:3])
+        ncpu = os.cpu_count() or 1
+        lvl = "ok" if la1 < ncpu else "warn" if la1 < ncpu * 1.5 else "bad"
+        rows.append(("Load 1/5/15m",
+                     f"{la1:.2f} / {la5:.2f} / {la15:.2f} ({ncpu} cores)", lvl))
+    except (OSError, ValueError):
+        pass
+
+    # RAM free -- the number that matters on a 1 GB Pi. Reads /proc directly.
     try:
         info = {}
         with open("/proc/meminfo") as f:
             for line in f:
                 k, _, v = line.partition(":")
-                info[k] = int(v.split()[0]) * 1024   # kB -> bytes
-        total = info.get("MemTotal", 0)
-        avail = info.get("MemAvailable", 0)
-        used_pct = 100.0 * (1 - avail / total) if total else 0.0
-        out = (f"RAM {avail/1e6:.0f} MB free of {total/1e6:.0f} MB "
-               f"({used_pct:.0f}% used)")
-    except OSError:
-        return ""
+                info[k] = int(v.split()[0]) * 1024          # kB -> bytes
+        total, avail = info.get("MemTotal", 0), info.get("MemAvailable", 0)
+        if total:
+            used_pct = 100.0 * (1 - avail / total)
+            lvl = "ok" if used_pct < 75 else "warn" if used_pct < 90 else "bad"
+            rows.append(("RAM free",
+                         f"{avail/1e6:.0f} MB of {total/1e6:.0f} MB ({used_pct:.0f}% used)",
+                         lvl))
+    except (OSError, ValueError):
+        pass
 
-    # RSS of the detector process, if it is running.
-    for statm in glob.glob("/proc/[0-9]*/statm"):
-        try:
-            with open(os.path.join(os.path.dirname(statm), "cmdline"), "rb") as f:
-                cmd = f.read().decode("utf-8", "replace")
-            if "meteor_detector.py" not in cmd:
-                continue
-            with open(statm) as f:
-                rss = int(f.read().split()[1]) * os.sysconf("SC_PAGE_SIZE")
-            out += f" &middot; detector RSS <b>{rss/1e6:.0f} MB</b>"
-            break
-        except (OSError, IndexError, ValueError):
-            continue
-    return out
+    rss = _detector_rss()
+    if rss is not None:
+        rows.append(("Detector RSS", f"{rss/1e6:.0f} MB", "ok"))
+    else:
+        rows.append(("Detector", "NOT RUNNING", "bad"))
+
+    # Free space on the card the project lives on -- a full card ends the run silently.
+    try:
+        st = os.statvfs(PROJ)
+        free, total = st.f_bavail * st.f_frsize, st.f_blocks * st.f_frsize
+        free_pct = 100.0 * free / total if total else 0.0
+        lvl = "ok" if free_pct > 15 else "warn" if free_pct > 5 else "bad"
+        rows.append(("Disk free",
+                     f"{free/1e9:.1f} GB of {total/1e9:.1f} GB ({free_pct:.0f}%)", lvl))
+    except (OSError, AttributeError):
+        pass
+
+    # System uptime.
+    try:
+        with open("/proc/uptime") as f:
+            up = int(float(f.read().split()[0]))
+        rows.append(("System uptime", f"{up//86400}d {up%86400//3600}h {up%3600//60}m", ""))
+    except (OSError, ValueError):
+        pass
+
+    rc = _reconnects()
+    if rc is not None:
+        rows.append(("Dongle reconnects", str(rc), "ok" if rc == 0 else "warn"))
+
+    return rows
+
+
+_LEVEL_COLOR = {"ok": "#1a7f37", "warn": "#9a6700", "bad": "#cf222e", "": "#57606a"}
+
+
+def health_html(rows) -> str:
+    """Render health() rows as a responsive grid of color-dotted tiles."""
+    if not rows:
+        return ""
+    cells = []
+    for label, value, level in rows:
+        dot = _LEVEL_COLOR.get(level, "#57606a")
+        cells.append(
+            "<div style='flex:1 1 210px;min-width:190px;padding:10px 12px;"
+            "border:1px solid #d0d7de;border-radius:8px'>"
+            f"<div style='font-size:11px;color:#57606a;text-transform:uppercase;"
+            f"letter-spacing:.05em'>{html.escape(label)}</div>"
+            "<div style='margin-top:4px'>"
+            f"<span style='display:inline-block;width:9px;height:9px;border-radius:50%;"
+            f"background:{dot};margin-right:7px;vertical-align:middle'></span>"
+            f"<b style='vertical-align:middle'>{html.escape(value)}</b></div></div>")
+    return ("<h3>Station health</h3>"
+            "<div style='display:flex;flex-wrap:wrap;gap:10px'>" + "".join(cells)
+            + "</div>")
 
 
 def page() -> str:
@@ -74,9 +193,7 @@ def page() -> str:
          f"<p><b>Total events:</b> {total} &nbsp;&nbsp;" +
          " ".join(f"<b>{html.escape(k)}</b>={v}" for k, v in sorted(by.items())) +
          "</p>"]
-    mem = memory()
-    if mem:
-        p.append(f"<p style='color:#555'>{mem}</p>")
+    p.append(health_html(health()))
     for title, fn in [("Session report", "session_report.png"),
                       ("Diurnal curve", "diurnal.png")]:
         if os.path.exists(os.path.join(PROJ, fn)):
