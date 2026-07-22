@@ -41,6 +41,10 @@
 !/rtl_sdr_env.py
 !/memutil.py
 !/uptime.py
+# The dongle smoke test -- deploy/pi/install.sh runs it and both Pi docs
+# reference it, so a clone without it makes the installer print a spurious
+# "check_device.py failed" that reads like a missing-device error.
+!/check_device.py
 !/render_snapshots.py
 
 # The analysis tools -- deploy/pi/report.sh runs both of these, so a clone

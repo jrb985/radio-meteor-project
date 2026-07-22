@@ -40,8 +40,15 @@ for _rmt_n in {names!r}:
 
 
 def main() -> int:
-    spec = importlib.util.find_spec("rtlsdr.librtlsdr")
-    path = spec.origin if spec else None
+    # Locate rtlsdr/librtlsdr.py WITHOUT importing the package. find_spec on the
+    # submodule "rtlsdr.librtlsdr" would import the parent "rtlsdr" package to get
+    # its __path__, which runs rtlsdr/__init__.py -> librtlsdr.py -> the very
+    # AttributeError this patch fixes (undefined symbol rtlsdr_set_dithering). So
+    # resolve the top-level package (find_spec does NOT execute it) and build the
+    # path to the submodule file ourselves.
+    spec = importlib.util.find_spec("rtlsdr")
+    locations = list(spec.submodule_search_locations) if spec else []
+    path = os.path.join(locations[0], "librtlsdr.py") if locations else None
     if not path or not os.path.exists(path):
         print("Could not locate rtlsdr/librtlsdr.py -- is pyrtlsdr installed?")
         return 1
