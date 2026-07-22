@@ -42,12 +42,61 @@ and installs the systemd unit.
 ## Monitor it
 
 ```bash
-journalctl -u meteor-tracker -f          # live service log
-tail -f meteor.log                        # (service also appends here)
+tail -f meteor.log                        # THE detector log: events, snapshots, heartbeat
+journalctl -u meteor-tracker -f          # systemd lifecycle only (see note)
+systemctl status meteor-tracker           # running? uptime? restart-looping?
+tail -f meteor_events.csv                 # the science record, one row per event
 python deploy/pi/status_server.py         # web status at http://<pi-ip>:8080
 bash deploy/pi/report.sh                   # regenerate session_report.png/diurnal.png
 ```
 Cron for hourly reports:  `0 * * * * /full/path/deploy/pi/report.sh`
+
+**Where the detector actually logs.** The systemd unit sets
+`StandardOutput=append:meteor.log` (and StandardError), so **all detector output --
+every event, snapshot line, and the 5-minute `[heartbeat]`, goes to `meteor.log`,
+NOT the journal.** `journalctl -u meteor-tracker` shows only systemd's own
+lifecycle messages ("Started meteor-tracker.service"); it looking quiet is normal
+and does not mean the detector is idle. Watch `meteor.log` to see it work.
+
+The `:8080` page (and the published status page below) also shows a **Station
+health** grid: CPU/SoC temperature, `vcgencmd` throttle/under-voltage flags, load
+average, RAM free, detector RSS, disk free, uptime, and a dongle-reconnect count.
+(RTL-SDR dongles expose no temperature sensor, so under-voltage state + reconnect
+count stand in as the dongle-health signal.) `status_server.py` reads live on each
+request -- restart it to pick up new code.
+
+## Publishing a public status page (hourly -> GitHub Pages)
+
+`publish_status.py` renders the same counts + health into a self-contained
+`docs/status.html`, and `publish_status.sh` commits and pushes it. Because `docs/`
+is the whitelisted, Pages-served folder, it goes live at
+`https://jrb985.github.io/radio-meteor-project/status.html` with no `.gitignore`
+change. Set up once:
+
+```bash
+# 1. git identity + a stored push credential (fine-grained PAT, Contents:write on
+#    THIS repo only -- create it at github.com Settings > Developer settings >
+#    Fine-grained tokens). The clone is HTTPS, so a token is all that's needed.
+git config user.name  "jrb985"
+git config user.email "65862606+jrb985@users.noreply.github.com"
+git config credential.helper store
+printf 'https://jrb985:%s@github.com\n' 'github_pat_YOUR_TOKEN' > ~/.git-credentials
+chmod 600 ~/.git-credentials
+
+# 2. test once (also populates the page so the landing-page link isn't a 404):
+/bin/bash deploy/pi/publish_status.sh        # -> "HH:MM UTC published"
+
+# 3. schedule hourly (add PATH=/usr/bin:/bin as line 1 of the crontab if cron
+#    can't find git):
+crontab -e
+# 0 * * * * /bin/bash /home/<user>/radio-meteor-project/deploy/pi/publish_status.sh >> ~/radio-meteor-project/status_publish.log 2>&1
+```
+
+`publish_status.sh` commits only when the page changed and `git pull --rebase
+--autostash`es before pushing, so hourly runs coexist with dev commits pushed from
+the PC. **Privacy:** this publishes event timestamps, SNR and counts to a public
+page (the `.gitignore` still keeps `snapshots/` and the raw `meteor_events.csv`
+private). To publish less, trim `render()` in `publish_status.py`.
 
 ## Fitting in 1 GB (the `pi` profile) -- read this
 
@@ -147,7 +196,10 @@ a driver problem, and no amount of `modprobe` will help. Note the command is
 - `meteor-tracker.service` -- systemd unit (templated by install.sh); sets
   `METEOR_PROFILE=pi` and the memory backstop.
 - `report.sh` -- regenerate analysis images.
-- `status_server.py` -- stdlib web status page (shows free RAM + detector RSS).
+- `status_server.py` -- stdlib live web status page + the `health()` probe
+  (temp/throttle/load/RAM/RSS/disk/uptime/reconnects).
+- `publish_status.py` -- render the counts + health into a static `docs/status.html`.
+- `publish_status.sh` -- hourly render + commit + push of that page (cron).
 
 In the project root, relevant here:
 
