@@ -10,8 +10,10 @@ Pipeline:
 Run AFTER the WinUSB driver is bound (see check_device.py / Zadig):
     python meteor_detector.py
 
-Stop with Ctrl+C. v1.1 adds a rolling IQ buffer so each ping is saved as a
-zoomed spectrogram under snapshots/ for meteor/aircraft/interference triage.
+Stop with Ctrl+C (or SIGTERM: systemctl stop / `timeout` / OS shutdown) -- both
+trigger a clean shutdown that finalizes the CSV and the exposure log. v1.1 adds a
+rolling IQ buffer so each ping is saved as a zoomed spectrogram under snapshots/
+for meteor/aircraft/interference triage.
 """
 from __future__ import annotations
 
@@ -263,7 +265,13 @@ def main(argv=None) -> int:
         nonlocal running
         running = False
 
+    # Handle SIGINT (Ctrl+C) AND SIGTERM (systemctl stop, `timeout`, RuntimeMaxSec,
+    # OS shutdown) identically: flip `running` so the main loop falls into the
+    # finally block, which finalizes the CSV, flushes queued snapshots, and closes
+    # the exposure log. Without the SIGTERM line, a service stop or a field-run
+    # timeout kills the process mid-write -- losing the exposure finalize.
     signal.signal(signal.SIGINT, _stop)
+    signal.signal(signal.SIGTERM, _stop)
 
     # Observing-exposure log. Exposure excludes warm-up and reconnect gaps, so
     # it is driven by the detector's `warm` flag and the reader's lost/restored

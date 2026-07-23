@@ -98,6 +98,38 @@ the PC. **Privacy:** this publishes event timestamps, SNR and counts to a public
 page (the `.gitignore` still keeps `snapshots/` and the raw `meteor_events.csv`
 private). To publish less, trim `render()` in `publish_status.py`.
 
+## Field runs: fixed duration, then a safe power-off
+
+**Never pull power from a running Pi.** An abrupt cut can corrupt the SD-card
+filesystem (occasionally fatally) and skips the detector's clean shutdown, which
+finalizes the CSV and, importantly, the **observing-exposure log** ([[exposure-log]]
+-- an un-finalized session degrades the exposure record the diurnal analysis relies
+on). Completed pings are usually safe (the CSV flushes per event), but the SD and
+the exposure finalize are not.
+
+**Stopping by hand:** run `sudo shutdown -h now`, wait for the **green activity LED
+to go dark** (only the red power LED steady), *then* unplug. That is always safe.
+
+**Unattended timed run:** `field_run.sh` observes for N hours, stops the detector
+cleanly, and powers the Pi off for you:
+
+```bash
+bash deploy/pi/field_run.sh 8        # observe 8 h, then power off; default is 8
+```
+
+You enter your sudo password once up front (it schedules the poweroff via
+`shutdown -h +N`); the run is then unattended. It stops the always-on service first
+so they don't contend for the dongle, runs the detector under `timeout` (SIGTERM at
+the deadline -> in-app clean shutdown), and the OS does a proper sync+unmount before
+halting. Cancel a pending poweroff with `sudo shutdown -c`.
+
+This relies on the detector treating **SIGTERM like Ctrl+C** (both flip `running`
+into the finally block). `meteor_detector.py` now installs a SIGTERM handler, so
+`systemctl stop`, `timeout`, `RuntimeMaxSec`, and OS shutdown all finalize cleanly
+-- previously only Ctrl+C did. For a truly no-touch "power on -> run 8 h -> power
+off" field box, drive `field_run.sh` from a boot unit instead of the always-on
+service (ask if you want that variant wired up).
+
 ## Fitting in 1 GB (the `pi` profile) -- read this
 
 The 3B+ has **1 GB shared with the OS**, and the detector's memory is dominated
@@ -200,6 +232,7 @@ a driver problem, and no amount of `modprobe` will help. Note the command is
   (temp/throttle/load/RAM/RSS/disk/uptime/reconnects).
 - `publish_status.py` -- render the counts + health into a static `docs/status.html`.
 - `publish_status.sh` -- hourly render + commit + push of that page (cron).
+- `field_run.sh` -- observe N hours, stop cleanly, power the Pi off (safe unplug).
 
 In the project root, relevant here:
 
