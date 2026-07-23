@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Running the station — Radio Meteor Project</title>
+<meta name="description" content="Operating the Raspberry Pi detector: where it logs, the live health page, stopping it without corrupting the SD card, and the no-touch field box that runs a fixed session then powers itself off.">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🖥️</text></svg>">
+<style>
+:root {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+  --serif:Georgia,'Iowan Old Style','Palatino Linotype',serif;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+    --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+    --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+    --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="light"] {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+}
+:root[data-theme="dark"] {
+  --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+  --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+  --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+  --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+}
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; line-height:1.6;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+.wrap { width:100%; max-width:940px; margin:0 auto;
+  padding:clamp(40px,8vh,96px) clamp(22px,5vw,40px); flex:1; }
+.eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ion); display:flex; align-items:center;
+  gap:.7em; margin:0 0 18px; }
+.eyebrow::before { content:""; width:26px; height:2px; background:var(--ion); }
+h1 { font-family:var(--serif); font-weight:600; font-size:clamp(30px,5.4vw,50px);
+  line-height:1.06; letter-spacing:-.015em; margin:0 0 18px; text-wrap:balance; max-width:22ch; }
+.lede { font-size:clamp(16px,2vw,20px); color:var(--ink-soft); max-width:64ch; margin:0 0 40px; }
+
+.home { position:fixed; top:16px; left:18px; z-index:50; font-family:var(--mono);
+  font-size:12px; letter-spacing:.05em; text-decoration:none; padding:7px 13px;
+  border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); backdrop-filter:blur(6px); }
+.home:hover { color:var(--ion); }
+.theme-toggle { position:fixed; top:16px; right:18px; z-index:40;
+  font-family:var(--mono); font-size:12px; letter-spacing:.05em;
+  padding:7px 13px; border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); cursor:pointer; backdrop-filter:blur(6px); }
+.theme-toggle:hover { color:var(--ion); }
+.theme-toggle:focus-visible { outline:2px solid var(--ion); outline-offset:2px; }
+
+section.slide { background:var(--surface); border:1px solid var(--line);
+  border-radius:18px; padding:clamp(22px,3vw,32px); margin-bottom:clamp(16px,2vw,22px);
+  box-shadow:var(--shadow); }
+section.slide > .no { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+section.slide h2 { font-family:var(--serif); font-weight:600;
+  font-size:clamp(21px,2.8vw,29px); margin:6px 0 4px; line-height:1.15; color:var(--ion); }
+section.slide .sub { color:var(--ink-soft); font-size:15px; margin:0 0 14px; }
+section.slide p { color:var(--ink-soft); font-size:15px; margin:12px 0 0; }
+section.slide ul { margin:10px 0 0; padding-left:20px; color:var(--ink-soft); }
+section.slide li { margin:6px 0; }
+section.slide li b, section.slide p b { color:var(--ink); font-weight:600; }
+
+/* code */
+pre { font-family:var(--mono); font-size:13px; line-height:1.55; margin:16px 0 4px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:12px;
+  padding:15px 17px; overflow-x:auto; color:var(--ink); }
+pre .c { color:var(--ink-faint); }            /* comment */
+code { font-family:var(--mono); font-size:.9em; background:var(--ion-soft);
+  border:1px solid var(--line); border-radius:6px; padding:1px 6px; color:var(--ink); }
+pre code { background:none; border:0; padding:0; font-size:inherit; }
+
+/* callout */
+.callout { border-radius:14px; padding:16px 18px; margin:16px 0 0;
+  border:1px solid var(--line); border-left:4px solid var(--ember);
+  background:color-mix(in srgb,var(--ember) 8%,var(--surface)); }
+.callout.ok { border-left-color:var(--good);
+  background:color-mix(in srgb,var(--good) 9%,var(--surface)); }
+.callout .t { font-family:var(--mono); font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ember); margin:0 0 6px; }
+.callout.ok .t { color:var(--good); }
+.callout p { margin:0; color:var(--ink); font-size:14.5px; }
+
+/* tables */
+.tablewrap { overflow-x:auto; margin:16px 0 0; }
+table { border-collapse:collapse; width:100%; font-size:14px; min-width:520px; }
+th { text-align:left; background:var(--ion-soft); color:var(--ink);
+  font-weight:600; padding:9px 11px; border:1px solid var(--line); }
+td { padding:9px 11px; border:1px solid var(--line); color:var(--ink-soft); vertical-align:top; }
+td:first-child { color:var(--ink); font-weight:500; white-space:nowrap; }
+
+.btn { display:inline-flex; align-items:center; gap:8px; font-family:var(--mono);
+  font-size:12.5px; text-decoration:none; color:var(--ion);
+  border:1px solid var(--line); border-radius:999px; padding:8px 15px;
+  background:var(--surface-2); margin:18px 8px 0 0; }
+.btn:hover { border-color:color-mix(in srgb,var(--ion) 50%,var(--line)); }
+
+footer { border-top:1px solid var(--line); }
+.foot-in { max-width:940px; margin:0 auto; padding:22px clamp(22px,5vw,40px);
+  font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);
+  letter-spacing:.03em; display:flex; flex-wrap:wrap; gap:6px 18px;
+  justify-content:space-between; }
+.foot-in a { color:var(--ink-faint); }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">&#8592; home</a>
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme">&#9790; theme</button>
+<div class="wrap">
+  <p class="eyebrow">Operations &middot; Deployment</p>
+  <h1>Running the station</h1>
+  <p class="lede">The detector runs headless on a Raspberry&nbsp;Pi&nbsp;3B+. This page is the
+  operator's guide: where to watch it, how to read its health, how to stop it without
+  corrupting the SD card, and how to build a plug-in-and-walk-away field box that observes
+  a fixed session and powers itself off.</p>
+
+  <section class="slide">
+    <p class="no">01 &middot; Monitoring</p>
+    <h2>Where it actually logs</h2>
+    <p class="sub">The service sends the detector's output to a file, not the systemd journal.</p>
+    <p>The systemd unit sets <code>StandardOutput=append:meteor.log</code>, so <b>every event,
+    snapshot line, and the 5-minute <code>[heartbeat]</code> goes to <code>meteor.log</code></b>
+    &mdash; <b>not</b> to <code>journalctl</code>. Running <code>journalctl -u meteor-tracker</code>
+    shows only systemd's own lifecycle chatter (&ldquo;Started&hellip;&rdquo;); it looking quiet is
+    normal and does <em>not</em> mean the detector is idle.</p>
+<pre><code><span class="c"># the detector's real output: events, snapshots, heartbeat</span>
+tail -f meteor.log
+
+<span class="c"># the science record — one row per detected ping</span>
+tail -f meteor_events.csv
+
+<span class="c"># is the process alive / restart-looping? (systemd's view)</span>
+systemctl status meteor-tracker
+
+<span class="c"># live dashboard on the local network</span>
+python deploy/pi/status_server.py        <span class="c"># http://&lt;pi-ip&gt;:8080</span></code></pre>
+    <p>Give it five minutes and you should see a <code>[heartbeat]</code> line &mdash; that's the
+    confirmation the capture loop is genuinely running.</p>
+  </section>
+
+  <section class="slide">
+    <p class="no">02 &middot; Health</p>
+    <h2>Station health at a glance</h2>
+    <p class="sub">The live page and the published page both carry a color-coded health grid.</p>
+    <p>Equipment health is read straight from <code>/proc</code>, <code>/sys</code> and
+    <code>vcgencmd</code> (no extra dependencies):</p>
+    <div class="tablewrap"><table>
+      <tr><th>Metric</th><th>Why it matters on a bare 3B+</th></tr>
+      <tr><td>CPU / SoC temp</td><td>Sustained DSP load can thermally throttle the Pi (~80&ndash;85&nbsp;&deg;C). This is the one temperature that actually exists to read.</td></tr>
+      <tr><td>Power / throttle</td><td><code>vcgencmd get_throttled</code> &mdash; under-voltage trips here first, then shows up as USB read errors. The single most useful field-health signal.</td></tr>
+      <tr><td>Load average</td><td>Against the 4 cores &mdash; is the detector keeping up with the sample stream.</td></tr>
+      <tr><td>RAM free / detector RSS</td><td>The number that matters in 1&nbsp;GB. The <code>pi</code> profile holds RSS near 100&nbsp;MB.</td></tr>
+      <tr><td>Disk free</td><td>Snapshots and logs accumulate; a full SD card ends a run silently.</td></tr>
+      <tr><td>Uptime / reconnects</td><td>System uptime, and how many USB glitches the in-process reconnect recovered.</td></tr>
+    </table></div>
+    <div class="callout">
+      <p class="t">No dongle thermometer</p>
+      <p>RTL-SDR dongles (RTL2832U&nbsp;+&nbsp;R820T) expose <b>no temperature sensor</b> &mdash;
+      there is nothing to read over USB. The under-voltage state plus the reconnect count stand
+      in as the dongle's health signal, since that is exactly how a hot or under-powered dongle
+      fails.</p>
+    </div>
+    <p>The station also publishes this to a public page every hour (rendered on the Pi by
+    <code>publish_status.py</code>, pushed by a cron job) so you can check it from anywhere:</p>
+    <a class="btn" href="status.html">&#128246; Live station status &#8594;</a>
+  </section>
+
+  <section class="slide">
+    <p class="no">03 &middot; Stopping safely</p>
+    <h2>Never pull power from a running Pi</h2>
+    <p class="sub">An abrupt cut is the one move that can actually break the deployment.</p>
+    <p>Yanking power mid-write can <b>corrupt the SD-card filesystem</b> (occasionally badly enough
+    that it won't boot) and skips the detector's clean shutdown, which finalizes the CSV and the
+    <b>observing-exposure log</b> &mdash; the record that keeps the diurnal analysis honest. Already-logged
+    pings are usually safe (the CSV flushes after every event); the SD and the exposure finalize are not.</p>
+    <div class="callout ok">
+      <p class="t">The always-safe habit</p>
+      <p>Run <code>sudo shutdown -h now</code>, wait for the <b>green activity LED to go dark</b>
+      (only the red power LED steady), <b>then</b> unplug. Never pull power while the activity LED
+      is still blinking.</p>
+    </div>
+    <p>Under the hood, the detector now treats <code>SIGTERM</code> like <code>Ctrl+C</code>: a
+    <code>systemctl stop</code>, a <code>timeout</code>, or an OS shutdown all run its clean-shutdown
+    path and finalize the logs. (Previously only <code>Ctrl+C</code> did &mdash; a plain service stop
+    killed it mid-write.)</p>
+  </section>
+
+  <section class="slide">
+    <p class="no">04 &middot; Attended field run</p>
+    <h2>Observe N hours, then power off</h2>
+    <p class="sub">One command, one sudo prompt up front, then walk away.</p>
+    <p><code>field_run.sh</code> schedules the power-off, runs the detector for the window, stops it
+    cleanly, and lets the OS halt itself &mdash; so it is safe to unplug when you return:</p>
+<pre><code>bash deploy/pi/field_run.sh 8      <span class="c"># observe 8 h, then power off (default 8)</span></code></pre>
+    <p>You enter your sudo password once (it schedules <code>shutdown -h +N</code>); the run itself
+    is unattended. It stops the always-on service first so they don't contend for the dongle, runs
+    the detector under <code>timeout</code> (SIGTERM&nbsp;&rarr;&nbsp;clean finalize), and the OS does a
+    proper sync&nbsp;+&nbsp;unmount before halting. Changed your mind mid-run?
+    <code>sudo shutdown -c</code>.</p>
+  </section>
+
+  <section class="slide">
+    <p class="no">05 &middot; No-touch field box</p>
+    <h2>Power on &rarr; run &rarr; power off, unattended</h2>
+    <p class="sub">For a box you plug in and leave &mdash; no SSH, no keyboard, no network needed.</p>
+    <p>Install the boot unit, then arm it (arming swaps the always-on service out so they never share
+    the dongle):</p>
+<pre><code>bash deploy/pi/install_field.sh                <span class="c"># installs meteor-field.service (unarmed)</span>
+
+<span class="c"># arm it — takes effect at the NEXT boot:</span>
+sudo systemctl disable --now meteor-tracker
+sudo systemctl enable meteor-field</code></pre>
+    <p>The cycle is then <b>power on &rarr; observe 8&nbsp;h &rarr; clean shutdown &rarr; safe to unplug
+    once the green LED goes dark</b>, and every power-on repeats it. How it stays safe:</p>
+    <ul>
+      <li>The unit runs as <b>root</b> so it can <code>poweroff</code> with no password&hellip;</li>
+      <li>&hellip;but <code>field_boot.sh</code> immediately drops to your user via <code>runuser</code>
+      for the detector, so <code>meteor_events.csv</code> and <code>snapshots/</code> stay owned by you
+      &mdash; no root-owned-file surprises if you switch modes.</li>
+      <li>The detector runs under <code>timeout</code>; the SIGTERM at the deadline triggers the same
+      clean finalize, then the Pi powers off.</li>
+      <li>It <b>always</b> powers off &mdash; even if the dongle wasn't seen at boot (a field box has no
+      operator to rescue it). The reason lands in <code>field_boot.log</code>; pull the SD to read it.</li>
+    </ul>
+    <p><b>Change the window:</b> <code>sudo systemctl edit meteor-field</code> &rarr; add
+    <code>[Service]</code> then <code>Environment=FIELD_HOURS=6</code>.<br>
+    <b>Back to 24/7:</b> <code>sudo systemctl disable meteor-field</code> then
+    <code>sudo systemctl enable --now meteor-tracker</code>.</p>
+    <div class="callout">
+      <p class="t">Field mode is offline</p>
+      <p>The hourly status-page publisher does not run in field mode (it needs the network, and a field
+      box likely has none). The exposure log and <code>meteor_events.csv</code> are the record &mdash;
+      copy them (or the whole SD) when the box comes home.</p>
+    </div>
+    <a class="btn" href="https://github.com/jrb985/radio-meteor-project/tree/main/deploy/pi">&#128421; Scripts &amp; units on GitHub &#8594;</a>
+  </section>
+</div>
+<footer><div class="foot-in">
+  <span>Operator's guide · headless Raspberry Pi 3B+ · low-memory <code>pi</code> profile</span>
+  <span><a href="https://github.com/jrb985/radio-meteor-project">source on GitHub</a> &middot; code v1.5</span>
+</div></footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  function cur() {
+    var s = root.getAttribute('data-theme');
+    if (s) return s;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function sync() { btn.textContent = cur() === 'dark' ? '☀ theme' : '☾ theme'; }
+  btn.addEventListener('click', function () {
+    root.setAttribute('data-theme', cur() === 'dark' ? 'light' : 'dark');
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>
