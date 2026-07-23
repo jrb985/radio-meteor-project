@@ -126,9 +126,34 @@ halting. Cancel a pending poweroff with `sudo shutdown -c`.
 This relies on the detector treating **SIGTERM like Ctrl+C** (both flip `running`
 into the finally block). `meteor_detector.py` now installs a SIGTERM handler, so
 `systemctl stop`, `timeout`, `RuntimeMaxSec`, and OS shutdown all finalize cleanly
--- previously only Ctrl+C did. For a truly no-touch "power on -> run 8 h -> power
-off" field box, drive `field_run.sh` from a boot unit instead of the always-on
-service (ask if you want that variant wired up).
+-- previously only Ctrl+C did.
+
+### No-touch field box (power on -> run N hours -> power off)
+
+For a box you plug in and walk away from -- no SSH, no keyboard -- install the
+boot unit, which runs the whole `field_run` cycle at startup:
+
+```bash
+bash deploy/pi/install_field.sh                # installs meteor-field.service (unarmed)
+# then ARM it (swaps out the always-on service so they don't share the dongle):
+sudo systemctl disable --now meteor-tracker
+sudo systemctl enable meteor-field             # takes effect at the NEXT boot
+```
+
+The cycle is then: **power on -> observe 8 h -> clean shutdown -> safe to unplug
+once the green LED goes dark**, and every power-on repeats it. How it works:
+`meteor-field.service` runs as **root** (so it can `poweroff` with no password) and
+its `field_boot.sh` immediately drops to your user via `runuser` for the detector,
+so `meteor_events.csv` / `snapshots/` stay owned by you exactly as the normal
+service leaves them. The detector runs under `timeout` (SIGTERM -> clean finalize),
+then the script powers the Pi off. Everything is logged to `field_boot.log` -- pull
+the SD to read it if a run failed (e.g. the dongle wasn't seen at boot; the box
+still powers off, since there's no operator to intervene).
+
+- **Change the window:** `sudo systemctl edit meteor-field` -> `[Service]` /
+  `Environment=FIELD_HOURS=6`.
+- **Back to 24/7:** `sudo systemctl disable meteor-field` then
+  `sudo systemctl enable --now meteor-tracker`.
 
 ## Fitting in 1 GB (the `pi` profile) -- read this
 
@@ -233,6 +258,8 @@ a driver problem, and no amount of `modprobe` will help. Note the command is
 - `publish_status.py` -- render the counts + health into a static `docs/status.html`.
 - `publish_status.sh` -- hourly render + commit + push of that page (cron).
 - `field_run.sh` -- observe N hours, stop cleanly, power the Pi off (safe unplug).
+- `field_boot.sh` + `meteor-field.service` + `install_field.sh` -- the no-touch
+  field box: a boot unit that runs `field_run`-style then powers off, unattended.
 
 In the project root, relevant here:
 

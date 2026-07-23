@@ -1,0 +1,20 @@
+[Unit]
+Description=Radio Meteor Tracker - no-touch field box (observe N hours at boot, then power off)
+# Mutually exclusive with the always-on service: starting one stops the other, so
+# they can never contend for the dongle. Placeholders filled in by install_field.sh.
+Conflicts=meteor-tracker.service
+
+[Service]
+# Runs as ROOT (no User=) so field_boot.sh can `systemctl poweroff` without a
+# password. field_boot.sh drops to __USER__ via runuser for the detector itself,
+# keeping data-file ownership identical to the normal service.
+Type=simple
+WorkingDirectory=__PROJECT_DIR__
+Environment=FIELD_HOURS=8
+Environment=FIELD_USER=__USER__
+ExecStart=/bin/bash __PROJECT_DIR__/deploy/pi/field_boot.sh
+# One run per boot: it powers the Pi off when the window ends, never restarts.
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
