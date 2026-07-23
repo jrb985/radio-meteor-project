@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Station status - Radio Meteor Tracker</title>
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>&#9732;</text></svg>">
+<style>
+  :root{color-scheme:light dark}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       max-width:920px;margin:0 auto;padding:2em 1.2em;line-height:1.5;
+       color:#1f2328;background:#fff}
+  h1{margin:0;font-size:1.6rem}
+  h3{margin:1.8em 0 .6em;font-size:1rem;text-transform:uppercase;letter-spacing:.05em;
+     color:#57606a;border-bottom:1px solid #d0d7de;padding-bottom:.3em}
+  .sub{margin:.3em 0 0;color:#57606a}
+  .updated{margin:.2em 0 0;color:#57606a;font-size:.85rem}
+  .counts{font-size:1.05rem}
+  .tw{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+  th,td{border:1px solid #d0d7de;padding:6px 10px;text-align:left;font-size:.9rem}
+  th{background:#f6f8fa}
+  footer{margin-top:2.5em;padding-top:1em;border-top:1px solid #d0d7de;
+         color:#57606a;font-size:.85rem}
+  a{color:#0969da}
+  @media (prefers-color-scheme:dark){
+    body{color:#e6edf3;background:#0d1117}
+    h3{color:#8b949e;border-color:#30363d}
+    .sub,.updated,footer{color:#8b949e}
+    th,td{border-color:#30363d}
+    th{background:#161b22}
+    a{color:#4493f8}
+    /* health tiles carry inline light-mode borders; nudge them for dark */
+    div[style*='border:1px solid #d0d7de']{border-color:#30363d !important}
+  }
+</style>
+</head>
+<body>
+<header>
+<h1>Radio Meteor Tracker</h1>
+<p class='sub'>FM forward-scatter meteor detector &middot; Seattle, WA &middot; Raspberry Pi station</p>
+<p class='updated'>Updated 2026-07-23 04:36 UTC &middot; refreshes hourly</p>
+</header>
+<h3>Station health</h3><div style='display:flex;flex-wrap:wrap;gap:10px'><div style='flex:1 1 210px;min-width:190px;padding:10px 12px;border:1px solid #d0d7de;border-radius:8px'><div style='font-size:11px;color:#57606a;text-transform:uppercase;letter-spacing:.05em'>CPU temp</div><div style='margin-top:4px'><span style='display:inline-block;width:9px;height:9px;border-radius:50%;background:#1a7f37;margin-right:7px;vertical-align:middle'></span><b style='vertical-align:middle'>56.9 °C</b></div></div><div style='flex:1 1 210px;min-width:190px;padding:10px 12px;border:1px solid #d0d7de;border-radius:8px'><div style='font-size:11px;color:#57606a;text-transform:uppercase;letter-spacing:.05em'>Power/throttle</div><div style='margin-top:4px'><span style='display:inline-block;width:9px;height:9px;border-radius:50%;background:#1a7f37;margin-right:7px;vertical-align:middle'></span><b style='vertical-align:middle'>healthy (0x0)</b></div></div><div style='flex:1 1 210px;min-width:190px;padding:10px 12px;border:1px solid #d0d7de;border-radius:8px'><div style='font-size:11px;color:#57606a;text-transform:uppercase;letter-spacing:.05em'>Load 1/5/15m</div><div style='margin-top:4px'><span style='display:inline-block;width:9px;height:9px;border-radius:50%;background:#1a7f37;margin-right:7px;vertical-align:middle'></span><b style='vertical-align:middle'>0.54 / 0.44 / 0.43 (4 cores)</b></div></div><div style='flex:1 1 210px;min-width:190px;padding:10px 12px;border:1px solid #d0d7de;border-radius:8px'><div style='font-size:11px;color:#57606a;text-transform:uppercase;letter-spacing:.05em'>RAM free</div><div style='margin-top:4px'><span style='display:inline-block;width:9px;height:9px;border-radius:50%;background:#1a7f37;margin-right:7px;vertical-align:middle'></span><b style='vertical-align:middle'>689 MB of 1018 MB (32% used)</b></div></div><div style='flex:1 1 210px;min-width:190px;padding:10px 12px;border:1px solid #d0d7de;border-radius:8px'><div style='font-size:11px;color:#57606a;text-transform:uppercase;letter-spacing:.05em'>Detector RSS</div><div style='margin-top:4px'><span style='display:inline-block;width:9px;height:9px;border-radius:50%;background:#1a7f37;margin-right:7px;vertical-align:middle'></span><b style='vertical-align:middle'>62 MB</b></div></div><div style='flex:1 1 210px;min-width:190px;padding:10px 12px;border:1px solid #d0d7de;border-radius:8px'><div style='font-size:11px;color:#57606a;text-transform:uppercase;letter-spacing:.05em'>Disk free</div><div style='margin-top:4px'><span style='display:inline-block;width:9px;height:9px;border-radius:50%;background:#1a7f37;margin-right:7px;vertical-align:middle'></span><b style='vertical-align:middle'>23.4 GB of 30.9 GB (76%)</b></div></div><div style='flex:1 1 210px;min-width:190px;padding:10px 12px;border:1px solid #d0d7de;border-radius:8px'><div style='font-size:11px;color:#57606a;text-transform:uppercase;letter-spacing:.05em'>System uptime</div><div style='margin-top:4px'><span style='display:inline-block;width:9px;height:9px;border-radius:50%;background:#57606a;margin-right:7px;vertical-align:middle'></span><b style='vertical-align:middle'>0d 0h 31m</b></div></div><div style='flex:1 1 210px;min-width:190px;padding:10px 12px;border:1px solid #d0d7de;border-radius:8px'><div style='font-size:11px;color:#57606a;text-transform:uppercase;letter-spacing:.05em'>Dongle reconnects</div><div style='margin-top:4px'><span style='display:inline-block;width:9px;height:9px;border-radius:50%;background:#1a7f37;margin-right:7px;vertical-align:middle'></span><b style='vertical-align:middle'>0</b></div></div></div>
+<h3>Detections</h3>
+<p class='counts'><b>21</b> total events &nbsp; <b>interference</b>=21</p>
+<h3>Latest events</h3><div class='tw'><table><tr><th>UTC</th><th>dur (s)</th><th>SNR (dB)</th><th>class</th></tr>
+<tr><td>2026-07-23T04:34:09.992064+00:00</td><td>0.244</td><td>4.3</td><td>interference</td></tr>
+<tr><td>2026-07-23T04:28:19.924504+00:00</td><td>0.384</td><td>5.0</td><td>interference</td></tr>
+<tr><td>2026-07-23T04:28:09.382394+00:00</td><td>0.344</td><td>4.4</td><td>interference</td></tr>
+<tr><td>2026-07-23T04:27:50.014555+00:00</td><td>0.328</td><td>4.2</td><td>interference</td></tr>
+<tr><td>2026-07-23T04:25:39.616812+00:00</td><td>0.296</td><td>4.6</td><td>interference</td></tr>
+<tr><td>2026-07-23T04:25:29.888205+00:00</td><td>0.368</td><td>4.7</td><td>interference</td></tr>
+<tr><td>2026-07-23T04:25:19.457411+00:00</td><td>0.420</td><td>4.8</td><td>interference</td></tr>
+<tr><td>2026-07-23T04:25:09.983884+00:00</td><td>0.352</td><td>4.8</td><td>interference</td></tr>
+<tr><td>2026-07-23T04:24:49.574571+00:00</td><td>0.356</td><td>4.3</td><td>interference</td></tr>
+<tr><td>2026-07-23T04:24:19.637713+00:00</td><td>0.272</td><td>4.2</td><td>interference</td></tr>
+<tr><td>2026-07-23T04:22:40.381595+00:00</td><td>0.160</td><td>4.0</td><td>interference</td></tr>
+<tr><td>2026-07-23T04:21:39.978827+00:00</td><td>0.352</td><td>5.0</td><td>interference</td></tr>
+</table></div>
+<footer><a href='index.html'>&larr; Project home</a> &middot; data updates hourly from the Pi; snapshots and the full event log stay on the station.</footer>
+</body>
+</html>
