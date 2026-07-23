@@ -330,7 +330,9 @@ def main(argv=None) -> int:
                         res = _classify_event(cfg, ring, ping)
                         if res is not None:
                             iqw, fa, label = res
-                            skip = cfg.snapshot_skip_aircraft and label == "aircraft"
+                            skip = ((cfg.snapshot_skip_aircraft and label == "aircraft")
+                                    or (cfg.snapshot_skip_interference
+                                        and label == "interference"))
                             job = SnapshotJob(iqw, fa, ping, center_hz,
                                               cfg.reference_freq_hz, label,
                                               sink.count)

@@ -172,6 +172,7 @@ changes, biggest win first:
 | `snapshot_queue_max_bytes` | 48 MB | A hard ceiling on queued IQ. Bounding the queue by *job count* bounds nothing, because a job is anywhere from ~4 MB to ~25 MB. |
 | `snapshot_max_window_s` | 1.5 s | Caps any one job at ~12 MB, and shrinks the ring buffer to 2.5 s (20 MB). |
 | `snapshot_skip_aircraft` | `true` | Near SeaTac these dominate. Skipping them keeps the queue and the SD card free for meteors. (They are still logged and counted.) |
+| `snapshot_skip_interference` | `true` | Same idea for interference-class events, which can dominate a noisy site. Only the ~1-2 MB `.npz` is skipped; the event is still classified, logged and counted. |
 | `read_block_size` | 128 Ki | Smaller USB reads, smaller transients. |
 
 **Measured:** ~100 MB peak RSS under a synthetic event flood, vs. ~490 MB for the

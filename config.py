@@ -75,6 +75,7 @@ class Config:
     snapshot_async: bool = True
     snapshot_queue_max: int = 32               # drop renders (not events) if full
     snapshot_skip_aircraft: bool = False       # don't render aircraft-class events
+    snapshot_skip_interference: bool = False   # don't render interference-class events
 
     # --- Snapshot memory budget (v1.4) ------------------------------------
     # What the worker WRITES per event:
@@ -150,7 +151,9 @@ class Config:
 #                              worst case behind a 32-job bound)
 #   snapshot_max_window_s      caps any one job at ~12 MB, and shrinks the ring
 #   snapshot_skip_aircraft     near SeaTac these dominate; skipping them keeps
-#                              the queue (and the SD card) free for meteors
+#   snapshot_skip_interference the queue (and the SD card) free for meteors. Both
+#                              classes are still logged + counted in the CSV --
+#                              only the ~1-2 MB .npz artifact is skipped.
 PROFILES: dict[str, dict] = {
     "pi": dict(
         snapshot_mode="npz",
@@ -159,6 +162,7 @@ PROFILES: dict[str, dict] = {
         snapshot_max_window_s=1.5,
         snapshot_max_rows=1024,
         snapshot_skip_aircraft=True,
+        snapshot_skip_interference=True,
         read_block_size=128 * 1024,
     ),
 }
