@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quickstart — Radio Meteor Project</title>
+<meta name="description" content="Two ways to run the Raspberry Pi meteor detector: at home with internet (24/7 service + hourly status page), or unattended in the field (power on, observe N hours, power off).">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🚀</text></svg>">
+<style>
+:root {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+  --serif:Georgia,'Iowan Old Style','Palatino Linotype',serif;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+    --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+    --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+    --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="light"] {
+  --bg:#EDEEF2; --surface:#F7F8FA; --surface-2:#FFFFFF;
+  --ink:#1B1F28; --ink-soft:#4E5666; --ink-faint:#858D9E;
+  --ion:#3D5FD9; --ion-soft:#DFE4F8; --ember:#C2410C; --good:#15803D;
+  --line:rgba(27,31,40,.13); --shadow:0 1px 2px rgba(27,31,40,.06),0 10px 34px rgba(27,31,40,.09);
+}
+:root[data-theme="dark"] {
+  --bg:#0C1017; --surface:#141A24; --surface-2:#1C2430;
+  --ink:#E7ECF4; --ink-soft:#A6B0C2; --ink-faint:#6B7688;
+  --ion:#8AA6FF; --ion-soft:#1B2542; --ember:#FB923C; --good:#4ADE80;
+  --line:rgba(231,236,244,.14); --shadow:0 1px 2px rgba(0,0,0,.35),0 14px 44px rgba(0,0,0,.45);
+}
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; line-height:1.6;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+.wrap { width:100%; max-width:940px; margin:0 auto;
+  padding:clamp(40px,8vh,96px) clamp(22px,5vw,40px); flex:1; }
+.eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ion); display:flex; align-items:center;
+  gap:.7em; margin:0 0 18px; }
+.eyebrow::before { content:""; width:26px; height:2px; background:var(--ion); }
+h1 { font-family:var(--serif); font-weight:600; font-size:clamp(32px,6vw,56px);
+  line-height:1.05; letter-spacing:-.015em; margin:0 0 18px; text-wrap:balance; }
+.lede { font-size:clamp(16px,2vw,20px); color:var(--ink-soft); max-width:64ch; margin:0 0 40px; }
+
+.home { position:fixed; top:16px; left:18px; z-index:50; font-family:var(--mono);
+  font-size:12px; letter-spacing:.05em; text-decoration:none; padding:7px 13px;
+  border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); backdrop-filter:blur(6px); }
+.home:hover { color:var(--ion); }
+.theme-toggle { position:fixed; top:16px; right:18px; z-index:40;
+  font-family:var(--mono); font-size:12px; letter-spacing:.05em;
+  padding:7px 13px; border-radius:999px; border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,transparent);
+  color:var(--ink-soft); cursor:pointer; backdrop-filter:blur(6px); }
+.theme-toggle:hover { color:var(--ion); }
+.theme-toggle:focus-visible { outline:2px solid var(--ion); outline-offset:2px; }
+
+section.slide { background:var(--surface); border:1px solid var(--line);
+  border-radius:18px; padding:clamp(22px,3vw,32px); margin-bottom:clamp(16px,2vw,22px);
+  box-shadow:var(--shadow); }
+section.slide > .no { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); }
+section.slide h2 { font-family:var(--serif); font-weight:600;
+  font-size:clamp(22px,3vw,32px); margin:6px 0 4px; line-height:1.15; color:var(--ion);
+  display:flex; align-items:center; gap:.5em; }
+section.slide .sub { color:var(--ink-soft); font-size:15px; margin:0; }
+section.slide h3 { font-family:var(--mono); font-size:12px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-faint); margin:26px 0 0; }
+section.slide p { color:var(--ink-soft); font-size:15px; margin:12px 0 0; }
+section.slide p b, li b { color:var(--ink); font-weight:600; }
+
+/* numbered steps */
+ol.steps { list-style:none; counter-reset:step; margin:6px 0 0; padding:0; }
+ol.steps > li { counter-increment:step; position:relative; padding-left:44px;
+  margin:20px 0; color:var(--ink); font-size:15px; }
+ol.steps > li::before { content:counter(step); position:absolute; left:0; top:-2px;
+  width:29px; height:29px; border-radius:50%; background:var(--ion-soft);
+  color:var(--ion); border:1px solid var(--line); font-family:var(--mono);
+  font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+
+/* code */
+pre { font-family:var(--mono); font-size:13px; line-height:1.55; margin:10px 0 0;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:12px;
+  padding:15px 17px; overflow-x:auto; color:var(--ink); }
+pre .c { color:var(--ink-faint); }
+code { font-family:var(--mono); font-size:.9em; background:var(--ion-soft);
+  border:1px solid var(--line); border-radius:6px; padding:1px 6px; color:var(--ink); }
+pre code { background:none; border:0; padding:0; font-size:inherit; }
+
+/* callout + link button */
+.callout { border-radius:14px; padding:16px 18px; margin:18px 0 0;
+  border:1px solid var(--line); border-left:4px solid var(--ember);
+  background:color-mix(in srgb,var(--ember) 8%,var(--surface)); }
+.callout.ok { border-left-color:var(--good);
+  background:color-mix(in srgb,var(--good) 9%,var(--surface)); }
+.callout .t { font-family:var(--mono); font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ember); margin:0 0 6px; }
+.callout.ok .t { color:var(--good); }
+.callout p { margin:0; color:var(--ink); font-size:14.5px; }
+.statuslink { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px;
+  margin:18px 0 0; padding:16px 18px; border-radius:14px;
+  border:1px solid color-mix(in srgb,var(--ion) 40%,var(--line));
+  background:color-mix(in srgb,var(--ion) 7%,var(--surface)); }
+.statuslink .lbl { font-family:var(--mono); font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ion); }
+.statuslink a { font-family:var(--mono); font-size:13.5px; color:var(--ion);
+  word-break:break-all; }
+
+footer { border-top:1px solid var(--line); }
+.foot-in { max-width:940px; margin:0 auto; padding:22px clamp(22px,5vw,40px);
+  font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);
+  letter-spacing:.03em; display:flex; flex-wrap:wrap; gap:6px 18px;
+  justify-content:space-between; }
+.foot-in a { color:var(--ink-faint); }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">&#8592; home</a>
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme">&#9790; theme</button>
+<div class="wrap">
+  <p class="eyebrow">Operations &middot; Quickstart</p>
+  <h1>Quickstart</h1>
+  <p class="lede">Two ways to run the station &mdash; pick the one that matches where the Pi is.
+  Everything below is typed on the Pi (over SSH, or on its own terminal).</p>
+
+  <section class="slide">
+    <p class="no">Path A</p>
+    <h2><span aria-hidden="true">📶</span> At home &mdash; on the network</h2>
+    <p class="sub">The Pi is powered and on your Wi-Fi (even if it's physically outside). Runs 24/7 and
+    self-publishes a status page you can watch from anywhere.</p>
+    <ol class="steps">
+      <li><b>Get the latest code.</b>
+<pre><code>cd ~/radio-meteor-project
+git pull</code></pre></li>
+      <li><b>Make sure field mode isn't armed</b> (Path B and Path A can't both run &mdash; they share the dongle).
+<pre><code>systemctl is-enabled meteor-field 2>/dev/null || echo "(not armed — good)"
+<span class="c"># if it prints "enabled":</span>
+sudo systemctl disable meteor-field</code></pre></li>
+      <li><b>Start the 24/7 detector</b> (and restart it if you just pulled new code).
+<pre><code>sudo systemctl enable --now meteor-tracker
+sudo systemctl restart meteor-tracker</code></pre></li>
+      <li><b>Confirm it's alive and detecting.</b> Watch for the <code>Listening:</code> line, then
+      events and a <code>[heartbeat]</code> within 5 minutes.
+<pre><code>systemctl status meteor-tracker --no-pager
+tail -f meteor.log</code></pre></li>
+      <li><b>The status page publishes itself every hour</b> (a cron job renders and pushes it). Confirm
+      it's scheduled, or push an update right now:
+<pre><code>crontab -l                            <span class="c"># the hourly job should be listed</span>
+bash deploy/pi/publish_status.sh      <span class="c"># publish immediately</span></code></pre>
+        <div class="statuslink">
+          <span class="lbl">Live status</span>
+          <a href="status.html">https://jrb985.github.io/radio-meteor-project/status.html</a>
+        </div>
+        <p style="margin-top:10px">Allow ~1&ndash;2&nbsp;min after a push for GitHub Pages to rebuild. Prefer a
+        real-time view on the same network? Run <code>python deploy/pi/status_server.py</code> and open
+        <code>http://&lt;pi-ip&gt;:8080</code> &mdash; no internet needed for that one.</p></li>
+    </ol>
+    <div class="callout ok">
+      <p class="t">Stopping it</p>
+      <p>Run <code>sudo shutdown -h now</code>, wait for the <b>green activity LED to go dark</b>, then
+      unplug. Never pull power while it's still blinking &mdash; that can corrupt the SD card.</p>
+    </div>
+  </section>
+
+  <section class="slide">
+    <p class="no">Path B</p>
+    <h2><span aria-hidden="true">🎒</span> In the field &mdash; unattended, no internet</h2>
+    <p class="sub">Plug it in, it observes for a set number of hours, then powers itself off. No keyboard,
+    no network, no operator. Do the setup once at home; after that it's power-on-and-walk-away.</p>
+
+    <h3>Before you leave &mdash; do this once, at home</h3>
+    <ol class="steps">
+      <li><b>Get the latest code and install the field unit.</b>
+<pre><code>cd ~/radio-meteor-project
+git pull
+bash deploy/pi/install_field.sh</code></pre></li>
+      <li><b>Set how long each run observes</b> (default is 8&nbsp;hours &mdash; skip this step to keep 8).
+<pre><code>sudo systemctl edit meteor-field
+<span class="c"># in the editor, add exactly these two lines under a [Service] header:</span>
+<span class="c">#   [Service]</span>
+<span class="c">#   Environment=FIELD_HOURS=8</span></code></pre></li>
+      <li><b>Arm it.</b> This swaps out the always-on service so the two never fight for the dongle. It
+      takes effect at the <b>next boot</b>.
+<pre><code>sudo systemctl disable --now meteor-tracker
+sudo systemctl enable meteor-field</code></pre></li>
+    </ol>
+
+    <h3>In the field</h3>
+    <p>Just <b>power on the Pi.</b> That's the whole operation. It will:</p>
+    <ul>
+      <li>observe for <code>FIELD_HOURS</code>, logging every event to <code>meteor_events.csv</code>;</li>
+      <li>stop the detector cleanly (finalizing the exposure log);</li>
+      <li>and power itself off. <b>Safe to unplug once the green activity LED goes dark.</b></li>
+    </ul>
+    <p>Every power-on repeats the cycle &mdash; so to run again, just power-cycle it.</p>
+
+    <h3>When you get home</h3>
+    <ol class="steps">
+      <li><b>Pull the data.</b> Copy <code>meteor_events.csv</code> and <code>snapshots/</code> off (over the
+      network or by pulling the SD). What happened each run is in <code>field_boot.log</code>.</li>
+      <li><b>Switch back to home / 24-7 mode.</b>
+<pre><code>sudo systemctl disable meteor-field
+sudo systemctl enable --now meteor-tracker</code></pre></li>
+    </ol>
+    <div class="callout">
+      <p class="t">The status page is offline in the field</p>
+      <p>With no internet, the hourly publisher can't push &mdash; that's expected. Your science is safe on
+      the SD card regardless; the live page just resumes once the Pi is back on the network in Path&nbsp;A.</p>
+    </div>
+  </section>
+
+  <section class="slide">
+    <p class="no">Reference</p>
+    <h2>Which mode am I in?</h2>
+    <p>One command tells you which service is set to run at boot &mdash; exactly one should be
+    <code>enabled</code>:</p>
+<pre><code>systemctl is-enabled meteor-tracker meteor-field
+<span class="c"># meteor-tracker enabled  + meteor-field disabled  = Path A (home, 24/7)</span>
+<span class="c"># meteor-tracker disabled + meteor-field enabled   = Path B (field box)</span></code></pre>
+    <p>Full detail on monitoring, station health, and safe shutdown is in the
+    <a href="field.html" style="color:var(--ion)">operator's guide</a>.</p>
+  </section>
+</div>
+<footer><div class="foot-in">
+  <span>Quickstart · headless Raspberry Pi 3B+ · pick Path A or Path B</span>
+  <span><a href="https://github.com/jrb985/radio-meteor-project">source on GitHub</a> &middot; code v1.5</span>
+</div></footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  function cur() {
+    var s = root.getAttribute('data-theme');
+    if (s) return s;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function sync() { btn.textContent = cur() === 'dark' ? '☀ theme' : '☾ theme'; }
+  btn.addEventListener('click', function () {
+    root.setAttribute('data-theme', cur() === 'dark' ? 'light' : 'dark');
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>
