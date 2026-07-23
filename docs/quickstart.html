@@ -141,16 +141,25 @@ footer { border-top:1px solid var(--line); }
     <p class="sub">The Pi is powered and on your Wi-Fi (even if it's physically outside). Runs 24/7 and
     self-publishes a status page you can watch from anywhere.</p>
     <ol class="steps">
-      <li><b>Get the latest code.</b>
+      <li><b>Get onto the Pi and bring it up to date.</b> Move into the project folder, update the
+      OS packages, then pull the latest detector code.
 <pre><code>cd ~/radio-meteor-project
-git pull</code></pre></li>
+sudo apt-get update && sudo apt-get upgrade -y   <span class="c"># keep Raspberry Pi OS current</span>
+git pull                                          <span class="c"># latest detector code</span></code></pre>
+        <p style="margin-top:10px">A big <code>upgrade</code> can occasionally ask for a reboot &mdash; if so,
+        <code>sudo reboot</code>, then <code>cd ~/radio-meteor-project</code> again and continue.</p></li>
       <li><b>Make sure field mode isn't armed</b> (Path B and Path A can't both run &mdash; they share the dongle).
 <pre><code>systemctl is-enabled meteor-field 2>/dev/null || echo "(not armed — good)"
 <span class="c"># if it prints "enabled":</span>
 sudo systemctl disable meteor-field</code></pre></li>
-      <li><b>Start the 24/7 detector</b> (and restart it if you just pulled new code).
-<pre><code>sudo systemctl enable --now meteor-tracker
-sudo systemctl restart meteor-tracker</code></pre></li>
+      <li><b>Start the detector.</b> The program that does the work is <code>meteor_detector.py</code>;
+      the <code>meteor-tracker</code> service runs it for you and restarts it on boot or after a crash.
+<pre><code>sudo systemctl enable --now meteor-tracker   <span class="c"># start now + on every boot</span>
+sudo systemctl restart meteor-tracker        <span class="c"># if you just pulled new code</span></code></pre>
+        <p style="margin-top:10px">Want to run it by hand in the foreground instead (to watch it live or
+        test)? Stop the service first so they don't share the dongle:</p>
+<pre><code>sudo systemctl stop meteor-tracker
+METEOR_PROFILE=pi .venv/bin/python meteor_detector.py   <span class="c"># Ctrl+C to stop</span></code></pre></li>
       <li><b>Confirm it's alive and detecting.</b> Watch for the <code>Listening:</code> line, then
       events and a <code>[heartbeat]</code> within 5 minutes.
 <pre><code>systemctl status meteor-tracker --no-pager
@@ -182,8 +191,9 @@ bash deploy/pi/publish_status.sh      <span class="c"># publish immediately</spa
 
     <h3>Before you leave &mdash; do this once, at home</h3>
     <ol class="steps">
-      <li><b>Get the latest code and install the field unit.</b>
+      <li><b>Bring the Pi up to date and install the field unit.</b>
 <pre><code>cd ~/radio-meteor-project
+sudo apt-get update && sudo apt-get upgrade -y
 git pull
 bash deploy/pi/install_field.sh</code></pre></li>
       <li><b>Set how long each run observes</b> (default is 8&nbsp;hours &mdash; skip this step to keep 8).
