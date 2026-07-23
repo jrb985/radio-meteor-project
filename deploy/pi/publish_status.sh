@@ -12,13 +12,17 @@ cd "$(dirname "$0")/../.."                       # -> project root
 
 .venv/bin/python deploy/pi/publish_status.py     # writes docs/status.html
 
-# Nothing to do if the rendered page is byte-identical to what's committed.
-if git diff --quiet -- docs/status.html; then
+# Stage FIRST, then test for a staged change. Checking `git diff` before staging
+# misses the very first run: a brand-new docs/status.html is UNTRACKED, and plain
+# `git diff` ignores untracked files, so it always reported "no change" and never
+# made the initial commit -- the page could never bootstrap onto Pages. Staging
+# then `git diff --cached` sees the new-file addition (and later no-op renders).
+git add docs/status.html
+if git diff --cached --quiet -- docs/status.html; then
     echo "$(date -u '+%H:%M UTC') no change"
     exit 0
 fi
 
-git add docs/status.html
 git commit -q -m "status: $(date -u '+%Y-%m-%d %H:%M UTC')"
 
 # Stay in sync with any dev commits pushed from the PC before publishing ours.
